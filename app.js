@@ -1048,6 +1048,23 @@ async function _waSearchTopTitles(lang, query, limit = 3) {
   } catch (_) { return []; }
 }
 
+// Naive trad/simp Chinese normaliser — covers common chars in our itinerary so
+// substring comparisons work across script variants (赞/賛, 龙/龍, 东/東, etc).
+const _T2S = {
+  '來':'来','備':'备','凱':'凯','區':'区','問':'问','國':'国','園':'园','場':'场','學':'学','峽':'峡',
+  '嵐':'岚','悅':'悦','慶':'庆','撈':'捞','數':'数','會':'会','東':'东','橋':'桥','機':'机','濃':'浓',
+  '濕':'湿','瀘':'泸','灣':'湾','獨':'独','碼':'码','納':'纳','經':'经','聖':'圣','臺':'台','莊':'庄',
+  '蒼':'苍','藍':'蓝','觀':'观','豬':'猪','買':'买','贊':'赞','遊':'游','達':'达','選':'选','鎮':'镇',
+  '長':'长','間':'间','闊':'阔','際':'际','隱':'隐','雙':'双','雲':'云','霧':'雾','頂':'顶','頭':'头',
+  '風':'风','飛':'飞','馬':'马','驗':'验','體':'体','魚':'鱼','麗':'丽','龍':'龙','龕':'龛','龜':'龟',
+  '榕':'榕'
+};
+function _waNormCJK(s) {
+  if (!s) return '';
+  let out = '';
+  for (const ch of s) out += (_T2S[ch] || ch);
+  return out.toLowerCase();
+}
 // Strip parens / common suffixes from a candidate title so we can substring-compare
 function _waCoreToken(s) {
   return (s || '')
@@ -1055,16 +1072,21 @@ function _waCoreToken(s) {
     .replace(/(酒店|古鎮|古城|風景區|景區|觀景台|國家公園|國家森林公園|公園|雪山|三塔|山脈|市|鎮|公司)$/g, '')
     .trim();
 }
+// Reject candidates that clearly belong to other countries
+const _NON_CN_HINTS = ['越南', '柬埔寨', '日本', '泰國', '韓國', '印度', '美國', '法國', '德國', '英國', '俄羅斯', '菲律賓', '馬來西亞', '新加坡'];
+function _waIsForeign(text) {
+  if (!text) return false;
+  for (const h of _NON_CN_HINTS) if (text.includes(h)) return true;
+  return false;
+}
 
 // Decide whether a search-result title is plausibly the same place as the query.
-// We require that the result core overlaps with the query core for at least 2 chars.
 function _waLooksRelevant(query, candidate) {
   if (!query || !candidate) return false;
-  const q = _waCoreToken(query);
-  const c = _waCoreToken(candidate);
+  const q = _waNormCJK(_waCoreToken(query));
+  const c = _waNormCJK(_waCoreToken(candidate));
   if (!q || !c) return false;
   if (c.includes(q) || q.includes(c)) return true;
-  // 2-char shared prefix (Chinese place names) is usually enough
   if (q.length >= 2 && c.startsWith(q.slice(0, 2))) return true;
   if (q.length >= 2 && q.startsWith(c.slice(0, 2))) return true;
   return false;
@@ -1088,7 +1110,9 @@ async function fetchWikipediaSummary(name) {
         if (!t) continue;
         if (!_waLooksRelevant(name, t) && !_waLooksRelevant(v, t)) continue;
         const s = await _waSummaryByTitle(lang, t);
-        if (s) return s;
+        if (!s) continue;
+        if (_waIsForeign(s)) continue; // skip non-China results
+        return s;
       }
     }
   }
