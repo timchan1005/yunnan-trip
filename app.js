@@ -1092,6 +1092,23 @@ function _waLooksRelevant(query, candidate) {
   return false;
 }
 
+// Apply simp→trad conversion only when result is mostly Chinese (skip English
+// fallback summaries). Uses window.simpToTrad from s2t.js if available.
+function _waMaybeConvertToTrad(text) {
+  if (!text) return text;
+  if (typeof window === 'undefined' || typeof window.simpToTrad !== 'function') return text;
+  // Heuristic: only convert if at least 30% of characters are CJK
+  let cjk = 0, total = 0;
+  for (const ch of text) {
+    total++;
+    const cp = ch.codePointAt(0);
+    if (cp >= 0x4e00 && cp <= 0x9fff) cjk++;
+    if (total > 200) break;
+  }
+  if (total === 0 || cjk / total < 0.3) return text;
+  return window.simpToTrad(text);
+}
+
 async function fetchWikipediaSummary(name) {
   if (!name) return null;
   const variants = _waPlaceVariants(name);
@@ -1101,7 +1118,7 @@ async function fetchWikipediaSummary(name) {
     // 1. Direct title hits across all variants (specific → general)
     for (const v of ordered) {
       const s = await _waSummaryByTitle(lang, v);
-      if (s) return s;
+      if (s) return _waMaybeConvertToTrad(s);
     }
     // 2. Search API — only accept results that look like the same place
     for (const v of ordered) {
@@ -1112,7 +1129,7 @@ async function fetchWikipediaSummary(name) {
         const s = await _waSummaryByTitle(lang, t);
         if (!s) continue;
         if (_waIsForeign(s)) continue; // skip non-China results
-        return s;
+        return _waMaybeConvertToTrad(s);
       }
     }
   }
