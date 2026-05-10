@@ -34,6 +34,8 @@ let activeDayIdx = -1;
 let map;
 let layerGroup;
 let routeLine;
+let renderSeq = 0; // increments on every renderMap/renderOverview to invalidate stale async routes
+const routeCache = new Map(); // key: "lat1,lng1|lat2,lng2" -> [[lat,lng], ...]
 let pickingMode = null; // { dayIdx, spotIdx, isHotel, isNew, onPicked }
 let pickingBanner;
 let editingTarget = null; // { dayIdx, spotIdx, isHotel, isNew }
@@ -312,6 +314,69 @@ async function reverseGeocode(lat, lng) {
   return await osmP;
 }
 
+// --- Real road routing via OSRM public demo (driving) ---
+// Returns array of [lat,lng] following roads, or null on failure.
+async function fetchRoadSegment(a, b) {
+  const key = `${a.lat.toFixed(5)},${a.lng.toFixed(5)}|${b.lat.toFixed(5)},${b.lng.toFixed(5)}`;
+  if (routeCache.has(key)) return routeCache.get(key);
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error('osrm http ' + res.status);
+    const j = await res.json();
+    const coords = j?.routes?.[0]?.geometry?.coordinates;
+    if (!coords || !coords.length) throw new Error('no geometry');
+    const latlngs = coords.map(c => [c[1], c[0]]); // GeoJSON is [lng,lat]
+    routeCache.set(key, latlngs);
+    return latlngs;
+  } catch (_) {
+    routeCache.set(key, null); // remember failure to avoid re-fetch
+    return null;
+  }
+}
+
+// Build a full road-following polyline from a sequence of waypoints.
+// Returns array of [lat,lng]. Falls back to straight segment for any failed leg.
+async function buildRoadPath(waypoints) {
+  if (!waypoints || waypoints.length < 2) return [];
+  const legs = await Promise.all(
+    waypoints.slice(0, -1).map((p, i) => fetchRoadSegment(p, waypoints[i + 1]))
+  );
+  const path = [];
+  legs.forEach((leg, i) => {
+    const a = waypoints[i];
+    const b = waypoints[i + 1];
+    if (leg && leg.length >= 2) {
+      if (path.length === 0) path.push(leg[0]);
+      for (let k = 1; k < leg.length; k++) path.push(leg[k]);
+    } else {
+      // fallback: straight line
+      if (path.length === 0) path.push([a.lat, a.lng]);
+      path.push([b.lat, b.lng]);
+    }
+  });
+  return path;
+}
+
+// Draw a high-contrast "casing" route (dark outline + bright fill).
+// Returns an L.featureGroup so callers can remove the whole composite later.
+function drawCasedRoute(latlngs, color, opts = {}) {
+  if (!latlngs || latlngs.length < 2) return null;
+  const weight = opts.weight ?? 5;
+  const dashed = opts.dashed ?? false;
+  const parts = [
+    L.polyline(latlngs, { color: '#0b1426', weight: weight + 4, opacity: 0.55, lineCap: 'round', lineJoin: 'round', interactive: false }),
+    L.polyline(latlngs, { color: '#ffffff', weight: weight + 2, opacity: 0.85, lineCap: 'round', lineJoin: 'round', interactive: false }),
+    L.polyline(latlngs, { color: color || '#1d3557', weight, opacity: 1, lineCap: 'round', lineJoin: 'round', dashArray: dashed ? '8, 8' : null, interactive: false })
+  ];
+  const fg = L.featureGroup(parts);
+  layerGroup.addLayer(fg);
+  return fg;
+}
+
 // --- Render markers + route for selected day(s) ---
 function renderMap() {
   layerGroup.clearLayers();
@@ -354,16 +419,20 @@ function renderMap() {
     layerGroup.addLayer(m);
   }
 
-  // Route line (dashed)
+  // Initial straight-line route (instant), then upgrade to real road geometry async
   if (points.length > 1) {
-    routeLine = L.polyline(points, {
-      color: day.color || '#1d3557',
-      weight: 3,
-      opacity: 0.75,
-      dashArray: '6, 8',
-      lineCap: 'round'
+    let placeholder = drawCasedRoute(points, day.color, { weight: 5, dashed: true });
+    const renderToken = ++renderSeq;
+    const wp = [];
+    if (startHotel) wp.push({ lat: startHotel.lat, lng: startHotel.lng });
+    day.spots.forEach(s => wp.push({ lat: s.lat, lng: s.lng }));
+    if (day.hotel) wp.push({ lat: day.hotel.lat, lng: day.hotel.lng });
+    buildRoadPath(wp).then(road => {
+      if (renderToken !== renderSeq) return; // user switched view
+      if (!road || road.length < 2) return;
+      if (placeholder) { layerGroup.removeLayer(placeholder); placeholder = null; }
+      drawCasedRoute(road, day.color, { weight: 5, dashed: false });
     });
-    layerGroup.addLayer(routeLine);
   }
 
   // Fit bounds
@@ -375,6 +444,7 @@ function renderMap() {
 
 // --- Overview: all days, all locations ---
 function renderOverview() {
+  ++renderSeq;
   const allPoints = [];
   const seenHotelKeys = new Set();
 
@@ -386,16 +456,20 @@ function renderOverview() {
     day.spots.forEach(s => routePts.push(projectLatLng(s.lat, s.lng)));
     if (day.hotel) routePts.push(projectLatLng(day.hotel.lat, day.hotel.lng));
 
-    // Day route line (dashed, day color)
+    // Day route: instant straight-line, then upgrade to real roads.
     if (routePts.length > 1) {
-      const line = L.polyline(routePts, {
-        color: day.color || '#1d3557',
-        weight: 3,
-        opacity: 0.7,
-        dashArray: '6, 8',
-        lineCap: 'round'
+      let placeholder = drawCasedRoute(routePts, day.color, { weight: 4, dashed: true });
+      const renderToken = renderSeq;
+      const wp = [];
+      if (prev && prev.hotel) wp.push({ lat: prev.hotel.lat, lng: prev.hotel.lng });
+      day.spots.forEach(s => wp.push({ lat: s.lat, lng: s.lng }));
+      if (day.hotel) wp.push({ lat: day.hotel.lat, lng: day.hotel.lng });
+      buildRoadPath(wp).then(road => {
+        if (renderToken !== renderSeq) return;
+        if (!road || road.length < 2) return;
+        if (placeholder) { layerGroup.removeLayer(placeholder); placeholder = null; }
+        drawCasedRoute(road, day.color, { weight: 4, dashed: false });
       });
-      layerGroup.addLayer(line);
     }
 
     // Spot markers
