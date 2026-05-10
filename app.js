@@ -1038,30 +1038,55 @@ async function _waSummaryByTitle(lang, title) {
   } catch (_) { return null; }
 }
 
-async function _waSearchTopTitle(lang, query) {
+async function _waSearchTopTitles(lang, query, limit = 3) {
   try {
-    const url = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
+    const url = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=${limit}&format=json&origin=*`;
     const r = await fetch(url);
-    if (!r.ok) return null;
+    if (!r.ok) return [];
     const j = await r.json();
-    const hit = j?.query?.search?.[0];
-    return hit?.title || null;
-  } catch (_) { return null; }
+    return (j?.query?.search || []).map((h) => h.title);
+  } catch (_) { return []; }
+}
+
+// Strip parens / common suffixes from a candidate title so we can substring-compare
+function _waCoreToken(s) {
+  return (s || '')
+    .replace(/[（(][^）)]*[）)]/g, '')
+    .replace(/(酒店|古鎮|古城|風景區|景區|觀景台|國家公園|國家森林公園|公園|雪山|三塔|山脈|市|鎮|公司)$/g, '')
+    .trim();
+}
+
+// Decide whether a search-result title is plausibly the same place as the query.
+// We require that the result core overlaps with the query core for at least 2 chars.
+function _waLooksRelevant(query, candidate) {
+  if (!query || !candidate) return false;
+  const q = _waCoreToken(query);
+  const c = _waCoreToken(candidate);
+  if (!q || !c) return false;
+  if (c.includes(q) || q.includes(c)) return true;
+  // 2-char shared prefix (Chinese place names) is usually enough
+  if (q.length >= 2 && c.startsWith(q.slice(0, 2))) return true;
+  if (q.length >= 2 && q.startsWith(c.slice(0, 2))) return true;
+  return false;
 }
 
 async function fetchWikipediaSummary(name) {
   if (!name) return null;
   const variants = _waPlaceVariants(name);
-  // Try direct title hits first across all variants in zh, then en
+  // Sort by length descending so we try the most specific name first.
+  const ordered = [...variants].sort((a, b) => b.length - a.length);
   for (const lang of ['zh', 'en']) {
-    for (const v of variants) {
+    // 1. Direct title hits across all variants (specific → general)
+    for (const v of ordered) {
       const s = await _waSummaryByTitle(lang, v);
       if (s) return s;
     }
-    // Then try search API and fetch top result's summary
-    for (const v of variants) {
-      const t = await _waSearchTopTitle(lang, v);
-      if (t && t !== v) {
+    // 2. Search API — only accept results that look like the same place
+    for (const v of ordered) {
+      const titles = await _waSearchTopTitles(lang, v, 3);
+      for (const t of titles) {
+        if (!t) continue;
+        if (!_waLooksRelevant(name, t) && !_waLooksRelevant(v, t)) continue;
         const s = await _waSummaryByTitle(lang, t);
         if (s) return s;
       }
