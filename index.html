@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="雲南行程">
+<meta name="theme-color" content="#1d3557">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<title>雲南 13 日互動行程地圖</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+
+<!-- App Shell -->
+<div id="app">
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <svg class="brand-mark" width="28" height="28" viewBox="0 0 32 32" fill="none" aria-label="logo">
+          <path d="M4 24 L10 14 L16 20 L22 8 L28 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="22" cy="8" r="2.5" fill="currentColor"/>
+        </svg>
+        <div class="brand-text">
+          <div class="brand-title">雲南 13 日</div>
+          <div class="brand-sub">2026/10/10 – 22</div>
+        </div>
+      </div>
+      <div class="view-tabs" role="tablist" aria-label="切換檢視">
+        <button class="view-tab active" data-view="map" role="tab" aria-selected="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          <span>地圖</span>
+        </button>
+        <button class="view-tab" data-view="budget" role="tab" aria-selected="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>預算</span>
+        </button>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="btn-export" title="匯出 JSON" aria-label="匯出">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-import" title="匯入 JSON" aria-label="匯入">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-reset" title="還原預設" aria-label="還原">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        </button>
+        <input type="file" id="file-import" accept=".json" hidden>
+      </div>
+    </div>
+  </header>
+
+  <!-- Map -->
+  <main class="map-wrap">
+    <div id="map" role="application" aria-label="行程地圖"></div>
+
+    <!-- Day chip rail (overlay top of map on mobile) -->
+    <div class="day-rail-wrap">
+      <div class="day-rail" id="day-rail" role="tablist" aria-label="每日行程"></div>
+    </div>
+
+    <!-- Floating add button -->
+    <button class="fab" id="btn-add" aria-label="新增地點">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+
+    <!-- Layer toggle -->
+    <div class="layer-toggle" id="layer-toggle">
+      <button data-layer="map" class="active">地圖</button>
+      <button data-layer="satellite">衛星</button>
+      <button data-layer="terrain">地形</button>
+    </div>
+
+    <!-- Drawer toggle -->
+    <button class="drawer-toggle" id="btn-drawer" aria-label="開啟行程清單">
+      <span class="drawer-toggle-handle"></span>
+      <span id="drawer-toggle-label">行程清單</span>
+    </button>
+  </main>
+
+  <!-- Bottom drawer / sidebar -->
+  <aside class="drawer" id="drawer" aria-label="行程詳情">
+    <div class="drawer-header">
+      <div class="drawer-grip" aria-hidden="true"></div>
+      <h2 id="drawer-title">行程清單</h2>
+      <button class="icon-btn" id="btn-close-drawer" aria-label="收起">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </aside>
+
+  <!-- Budget View -->
+  <section class="budget-view" id="budget-view" hidden aria-label="預算追蹤">
+    <div class="budget-inner">
+
+      <!-- Summary cards -->
+      <div class="budget-summary">
+        <div class="summary-card primary">
+          <div class="summary-label">總開支</div>
+          <div class="summary-amount" id="sum-total">—</div>
+          <div class="summary-sub" id="sum-total-hkd">—</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">已付</div>
+          <div class="summary-amount" id="sum-paid">—</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">未付</div>
+          <div class="summary-amount" id="sum-unpaid">—</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">人均／日</div>
+          <div class="summary-amount" id="sum-avg">—</div>
+        </div>
+      </div>
+
+      <!-- Category breakdown bar -->
+      <div class="breakdown-card">
+        <div class="breakdown-header">
+          <h3>分類佔比</h3>
+          <div class="settings-row">
+            <label class="inline-field">
+              <span>匯率</span>
+              <input type="number" step="0.0001" id="fx-rate" value="1.10" title="1 CNY = ? HKD">
+              <span class="unit">HKD/CNY</span>
+            </label>
+            <label class="inline-field">
+              <span>人數</span>
+              <input type="number" min="1" id="travelers" value="1">
+            </label>
+          </div>
+        </div>
+        <div class="breakdown-bar" id="breakdown-bar"></div>
+        <div class="breakdown-legend" id="breakdown-legend"></div>
+      </div>
+
+      <!-- Filter / category tabs -->
+      <div class="budget-toolbar">
+        <div class="cat-filter" id="cat-filter" role="tablist">
+          <button class="cat-btn active" data-cat="all">全部</button>
+          <button class="cat-btn" data-cat="hotel">住宿</button>
+          <button class="cat-btn" data-cat="flight">機票</button>
+          <button class="cat-btn" data-cat="transport">交通</button>
+          <button class="cat-btn" data-cat="food">餐飲</button>
+          <button class="cat-btn" data-cat="activity">活動</button>
+          <button class="cat-btn" data-cat="shopping">購物</button>
+          <button class="cat-btn" data-cat="other">其他</button>
+        </div>
+        <button class="btn-primary btn-sm" id="btn-add-expense">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新增項目
+        </button>
+      </div>
+
+      <!-- Expense list -->
+      <div class="expense-list" id="expense-list"></div>
+
+      <div class="budget-foot">
+        <button class="btn-secondary" id="btn-seed-hotels" type="button">由行程帶入酒店</button>
+        <button class="btn-ghost" id="btn-clear-expenses" type="button">清空所有項目</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Edit modal -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-card modal-card-wide">
+    <div class="modal-header">
+      <div class="modal-header-text">
+        <h3 id="modal-title">編輯地點</h3>
+        <p class="modal-subtitle" id="modal-subtitle">填寫資料或喺地圖揀位置</p>
+      </div>
+      <button class="icon-btn" id="btn-close-modal" aria-label="關閉">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body modal-body-grid">
+      <!-- Section: search -->
+      <div class="form-section form-section-full">
+        <div class="form-section-title form-section-title-row">
+          <div class="form-section-title-left">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>快速搜尋</span>
+          </div>
+          <span class="search-source-badge" id="search-source-badge" hidden></span>
+        </div>
+        <div class="search-box">
+          <input type="text" id="f-search" placeholder="打地點名嚟自動填入座標（例：石林風景區）" autocomplete="off">
+          <div class="search-results" id="f-search-results" hidden></div>
+        </div>
+      </div>
+
+      <!-- Section: basic info (left column on desktop) -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>基本資料</span>
+        </div>
+        <label class="field">
+          <span>名稱</span>
+          <input type="text" id="f-name" placeholder="例：石林風景區">
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span>類型</span>
+            <select id="f-kind">
+              <option value="spot">景點</option>
+              <option value="hotel">酒店</option>
+            </select>
+          </label>
+          <label class="field" id="f-day-wrap">
+            <span>所屬日子</span>
+            <select id="f-day"></select>
+          </label>
+        </div>
+        <label class="field">
+          <span>時間段</span>
+          <input type="text" id="f-time" placeholder="例：上午 / 下午 / 晚上">
+        </label>
+      </div>
+
+      <!-- Section: location (right column on desktop) -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>位置</span>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span>緯度</span>
+            <input type="number" step="any" id="f-lat" placeholder="25.0389">
+          </label>
+          <label class="field">
+            <span>經度</span>
+            <input type="number" step="any" id="f-lng" placeholder="102.7183">
+          </label>
+        </div>
+        <button class="btn-secondary btn-pick-map" id="btn-pick" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>喺地圖揀位置</span>
+        </button>
+        <label class="field">
+          <span>備註</span>
+          <textarea id="f-note" rows="2" placeholder="例：白族建築、必試喜洲粑粑"></textarea>
+        </label>
+      </div>
+
+      <!-- Section: description (full width) -->
+      <div class="form-section form-section-full">
+        <div class="form-section-title form-section-title-row">
+          <div class="form-section-title-left">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>詳細說明</span>
+          </div>
+          <button class="btn-link" type="button" id="btn-fetch-desc">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>從維基自動取得</span>
+          </button>
+        </div>
+        <textarea id="f-desc" rows="4" placeholder="留空可之後再填，或撳「從維基自動取得」自動填入"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger" id="btn-delete">刪除</button>
+      <div class="modal-footer-right">
+        <button class="btn-ghost" id="btn-cancel">取消</button>
+        <button class="btn-primary" id="btn-save">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Expense modal -->
+<div class="modal" id="expense-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="expense-modal-title">新增開支</h3>
+      <button class="icon-btn" id="btn-close-expense" aria-label="關閉">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <label class="field">
+        <span>名稱</span>
+        <input type="text" id="e-name" placeholder="例：昆明索菲特大酒店">
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>分類</span>
+          <select id="e-cat">
+            <option value="hotel">住宿</option>
+            <option value="flight">機票</option>
+            <option value="transport">交通（包車／火車／纜車）</option>
+            <option value="food">餐飲</option>
+            <option value="activity">活動／門票</option>
+            <option value="shopping">購物</option>
+            <option value="other">其他</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>對應日子</span>
+          <select id="e-day"></select>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field">
+          <span>金額</span>
+          <input type="number" step="0.01" id="e-amount" placeholder="0.00">
+        </label>
+        <label class="field">
+          <span>幣種</span>
+          <select id="e-currency">
+            <option value="CNY">CNY 人民幣</option>
+            <option value="HKD">HKD 港幣</option>
+            <option value="USD">USD 美元</option>
+          </select>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field">
+          <span>狀態</span>
+          <select id="e-status">
+            <option value="unpaid">未付</option>
+            <option value="paid">已付</option>
+            <option value="pending">待確認</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>付款方式</span>
+          <input type="text" id="e-method" placeholder="例：信用卡 / Alipay">
+        </label>
+      </div>
+      <label class="field">
+        <span>備註</span>
+        <textarea id="e-note" rows="2" placeholder="例：含早餐、確認號 ABC123"></textarea>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger" id="btn-delete-expense">刪除</button>
+      <div class="modal-footer-right">
+        <button class="btn-ghost" id="btn-cancel-expense">取消</button>
+        <button class="btn-primary" id="btn-save-expense">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="config.js"></script>
+<script>
+  // Load Google Maps JS SDK with Places library — only if a key is set.
+  (function () {
+    if (window.GOOGLE_MAPS_API_KEY) {
+      window._googleMapsReady = new Promise(function (resolve) { window._googleMapsReadyResolve = resolve; });
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + window.GOOGLE_MAPS_API_KEY +
+              '&libraries=places&callback=_gmReady&loading=async&language=zh-HK&region=HK';
+      s.async = true; s.defer = true;
+      window._gmReady = function () { window._googleMapsReadyResolve(true); };
+      s.onerror = function () { window._googleMapsReadyResolve(false); };
+      document.head.appendChild(s);
+    } else {
+      window._googleMapsReady = Promise.resolve(false);
+    }
+  })();
+</script>
+<script src="data.js"></script>
+<script src="app.js?v=5"></script>
+
+</body>
+</html>

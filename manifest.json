@@ -1,0 +1,14 @@
+{
+  "name": "雲南 13 日互動行程",
+  "short_name": "雲南行程",
+  "description": "2026/10 雲南互動地圖行程規劃",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf7f2",
+  "theme_color": "#1d3557",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
