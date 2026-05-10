@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
@@ -65,9 +65,9 @@
 
     <!-- Layer toggle -->
     <div class="layer-toggle" id="layer-toggle">
-      <button data-layer="satellite" class="active">衛星</button>
-      <button data-layer="map">地圖</button>
-      <button data-layer="terrain">地形</button>
+      <button data-layer="amap-satellite" class="active" title="高德衛星（中國區域路網最準確）">高德</button>
+      <button data-layer="satellite" title="Google 衛星（繁中 label）">Google</button>
+      <button data-layer="terrain" title="OpenTopoMap">地形</button>
     </div>
 
     <!-- Drawer toggle -->
@@ -370,7 +370,7 @@
   })();
 </script>
 <script src="data.js"></script>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 
 </body>
 </html>

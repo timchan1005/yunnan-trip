@@ -50,40 +50,122 @@ function saveState() {
   catch (e) { console.warn('storage write failed', e); }
 }
 
+// --- Coordinate transforms (WGS-84 ↔ GCJ-02 for China-only tiles) ---
+// Reference implementation of GCJ-02 “Mars coordinates” offset.
+// Used for Google tile layers in China where roads are GCJ-02 but data is WGS-84.
+const GCJ_A = 6378245.0;
+const GCJ_EE = 0.00669342162296594323;
+function _outOfChina(lat, lng) {
+  return !(lng > 73.66 && lng < 135.05 && lat > 3.86 && lat < 53.55);
+}
+function _transformLat(x, y) {
+  let r = -100 + 2*x + 3*y + 0.2*y*y + 0.1*x*y + 0.2*Math.sqrt(Math.abs(x));
+  r += (20*Math.sin(6*x*Math.PI) + 20*Math.sin(2*x*Math.PI)) * 2/3;
+  r += (20*Math.sin(y*Math.PI) + 40*Math.sin(y/3*Math.PI)) * 2/3;
+  r += (160*Math.sin(y/12*Math.PI) + 320*Math.sin(y*Math.PI/30.0)) * 2/3;
+  return r;
+}
+function _transformLng(x, y) {
+  let r = 300 + x + 2*y + 0.1*x*x + 0.1*x*y + 0.1*Math.sqrt(Math.abs(x));
+  r += (20*Math.sin(6*x*Math.PI) + 20*Math.sin(2*x*Math.PI)) * 2/3;
+  r += (20*Math.sin(x*Math.PI) + 40*Math.sin(x/3*Math.PI)) * 2/3;
+  r += (150*Math.sin(x/12*Math.PI) + 300*Math.sin(x/30*Math.PI)) * 2/3;
+  return r;
+}
+function wgs84ToGcj02(lat, lng) {
+  if (_outOfChina(lat, lng)) return [lat, lng];
+  let dLat = _transformLat(lng - 105, lat - 35);
+  let dLng = _transformLng(lng - 105, lat - 35);
+  const radLat = lat / 180 * Math.PI;
+  let magic = Math.sin(radLat);
+  magic = 1 - GCJ_EE * magic * magic;
+  const sqrtMagic = Math.sqrt(magic);
+  dLat = (dLat * 180) / ((GCJ_A * (1 - GCJ_EE)) / (magic * sqrtMagic) * Math.PI);
+  dLng = (dLng * 180) / (GCJ_A / sqrtMagic * Math.cos(radLat) * Math.PI);
+  return [lat + dLat, lng + dLng];
+}
+// Inverse: GCJ-02 → WGS-84 via iterative refinement (good to ~1e-7 deg)
+function gcj02ToWgs84(lat, lng) {
+  if (_outOfChina(lat, lng)) return [lat, lng];
+  let wlat = lat, wlng = lng;
+  for (let i = 0; i < 5; i++) {
+    const [glat, glng] = wgs84ToGcj02(wlat, wlng);
+    wlat += (lat - glat);
+    wlng += (lng - glng);
+  }
+  return [wlat, wlng];
+}
+// Inverse of projectLatLng: takes display-CRS coords from current layer
+// and returns WGS-84 for storage.
+function unprojectLatLng(lat, lng) {
+  const cfg = BASE_LAYERS[currentLayerName];
+  if (cfg && cfg.isGcj) return gcj02ToWgs84(lat, lng);
+  return [lat, lng];
+}
+
 // --- Map setup ---
 let baseLayer;
+let currentLayerName = 'amap-satellite';
+// Layers flagged isGcj=true expect input coordinates in GCJ-02. We feed our
+// WGS-84 data through wgs84ToGcj02 before rendering markers/polylines.
 const BASE_LAYERS = {
+  // 高德地圖 (AutoNavi/AMap) — native GCJ-02 satellite + roads, perfect alignment in China
+  'amap-satellite': {
+    url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
+    overlayUrl: 'https://webst0{s}.is.autonavi.com/appmaptile?style=8&x={x}&y={y}&z={z}',
+    options: { subdomains: ['1','2','3','4'], maxZoom: 19, attribution: '© 高德地圖' },
+    isGcj: true
+  },
+  // 高德街道地圖
+  'amap-road': {
+    url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+    options: { subdomains: ['1','2','3','4'], maxZoom: 19, attribution: '© 高德地圖' },
+    isGcj: true
+  },
+  // Google Hybrid (satellite + Traditional Chinese labels) — also GCJ-02 in China
   satellite: {
     url: 'https://mt{s}.google.com/vt/lyrs=y&hl=zh-TW&gl=tw&x={x}&y={y}&z={z}',
-    options: {
-      subdomains: ['0', '1', '2', '3'], maxZoom: 20,
-      attribution: '© Google'
-    }
+    options: { subdomains: ['0','1','2','3'], maxZoom: 20, attribution: '© Google' },
+    isGcj: true
   },
+  // Google Roads (GCJ-02 in China)
   map: {
     url: 'https://mt{s}.google.com/vt/lyrs=m&hl=zh-TW&gl=tw&x={x}&y={y}&z={z}',
-    options: {
-      subdomains: ['0', '1', '2', '3'], maxZoom: 20,
-      attribution: '© Google'
-    }
+    options: { subdomains: ['0','1','2','3'], maxZoom: 20, attribution: '© Google' },
+    isGcj: true
   },
+  // OpenTopoMap (WGS-84) for terrain
   terrain: {
-    url: 'https://mt{s}.google.com/vt/lyrs=p&hl=zh-TW&gl=tw&x={x}&y={y}&z={z}',
-    options: {
-      subdomains: ['0', '1', '2', '3'], maxZoom: 20,
-      attribution: '© Google'
-    }
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    options: { subdomains: 'abc', maxZoom: 17, attribution: '© OpenTopoMap · © OSM' },
+    isGcj: false
   }
 };
 
+// Returns [lat,lng] adjusted for the current layer’s coordinate system
+function projectLatLng(lat, lng) {
+  const cfg = BASE_LAYERS[currentLayerName];
+  if (cfg && cfg.isGcj) return wgs84ToGcj02(lat, lng);
+  return [lat, lng];
+}
+
+let overlayLayer;
 function setBaseLayer(name) {
+  if (!BASE_LAYERS[name]) name = 'amap-satellite';
   if (baseLayer) map.removeLayer(baseLayer);
-  const cfg = BASE_LAYERS[name] || BASE_LAYERS.map;
+  if (overlayLayer) { map.removeLayer(overlayLayer); overlayLayer = null; }
+  const cfg = BASE_LAYERS[name];
+  currentLayerName = name;
   baseLayer = L.tileLayer(cfg.url, cfg.options).addTo(map);
+  if (cfg.overlayUrl) {
+    overlayLayer = L.tileLayer(cfg.overlayUrl, cfg.options).addTo(map);
+  }
   if (layerGroup) layerGroup.eachLayer(l => l.bringToFront && l.bringToFront());
   document.querySelectorAll('#layer-toggle button').forEach(b => {
     b.classList.toggle('active', b.dataset.layer === name);
   });
+  // Re-render markers/routes since coordinate system may have changed
+  if (typeof renderMap === 'function' && map) renderMap();
 }
 
 function initMap() {
@@ -101,8 +183,8 @@ function initMap() {
 
   map.on('click', (e) => {
     if (pickingMode) {
-      const { lat, lng } = e.latlng;
-      pickingMode.onPicked(lat, lng);
+      const [wlat, wlng] = unprojectLatLng(e.latlng.lat, e.latlng.lng);
+      pickingMode.onPicked(wlat, wlng);
       exitPickingMode();
     }
   });
@@ -121,7 +203,7 @@ function renderMap() {
   const prev = activeDayIdx > 0 ? state.days[activeDayIdx - 1] : null;
   const startHotel = prev && prev.hotel ? prev.hotel : null;
   if (startHotel) {
-    points.push([startHotel.lat, startHotel.lng]);
+    points.push(projectLatLng(startHotel.lat, startHotel.lng));
   }
 
   // Spots in order
@@ -130,7 +212,7 @@ function renderMap() {
     m.bindPopup(buildPopup(spot, { kind: 'spot', dayIdx: activeDayIdx, spotIdx: i }));
     m.on('click', () => m.openPopup());
     layerGroup.addLayer(m);
-    points.push([spot.lat, spot.lng]);
+    points.push(projectLatLng(spot.lat, spot.lng));
   });
 
   // Tonight's hotel as the end of the route
@@ -139,7 +221,7 @@ function renderMap() {
     m.bindPopup(buildPopup(day.hotel, { kind: 'hotel', dayIdx: activeDayIdx }));
     m.on('click', () => m.openPopup());
     layerGroup.addLayer(m);
-    points.push([day.hotel.lat, day.hotel.lng]);
+    points.push(projectLatLng(day.hotel.lat, day.hotel.lng));
   }
 
   // Also display previous hotel as a faded marker (context)
@@ -178,9 +260,9 @@ function renderOverview() {
     // Build per-day route: previous hotel -> spots -> this hotel
     const routePts = [];
     const prev = dayIdx > 0 ? state.days[dayIdx - 1] : null;
-    if (prev && prev.hotel) routePts.push([prev.hotel.lat, prev.hotel.lng]);
-    day.spots.forEach(s => routePts.push([s.lat, s.lng]));
-    if (day.hotel) routePts.push([day.hotel.lat, day.hotel.lng]);
+    if (prev && prev.hotel) routePts.push(projectLatLng(prev.hotel.lat, prev.hotel.lng));
+    day.spots.forEach(s => routePts.push(projectLatLng(s.lat, s.lng)));
+    if (day.hotel) routePts.push(projectLatLng(day.hotel.lat, day.hotel.lng));
 
     // Day route line (dashed, day color)
     if (routePts.length > 1) {
@@ -200,7 +282,7 @@ function renderOverview() {
       m.bindPopup(buildPopup(spot, { kind: 'spot', dayIdx, spotIdx: i }));
       m.on('click', () => m.openPopup());
       layerGroup.addLayer(m);
-      allPoints.push([spot.lat, spot.lng]);
+      allPoints.push(projectLatLng(spot.lat, spot.lng));
     });
 
     // Hotel marker — dedupe consecutive identical hotels
@@ -212,7 +294,7 @@ function renderOverview() {
         m.bindPopup(buildPopup(day.hotel, { kind: 'hotel', dayIdx }));
         m.on('click', () => m.openPopup());
         layerGroup.addLayer(m);
-        allPoints.push([day.hotel.lat, day.hotel.lng]);
+        allPoints.push(projectLatLng(day.hotel.lat, day.hotel.lng));
       }
     }
   });
@@ -239,7 +321,7 @@ function createMarker(loc, opts = {}) {
     iconAnchor: isHotel ? [16, 16] : [15, 30],
     popupAnchor: [0, isHotel ? -16 : -28]
   });
-  return L.marker([loc.lat, loc.lng], { icon, draggable: false });
+  return L.marker(projectLatLng(loc.lat, loc.lng), { icon, draggable: false });
 }
 
 function buildPopup(loc, ctx) {
@@ -372,10 +454,11 @@ function buildSpotRow(loc, ctx) {
       renderDayRail();
       renderMap();
       setTimeout(() => {
-        map.flyTo([loc.lat, loc.lng], 14, { duration: 0.6 });
+        const proj = projectLatLng(loc.lat, loc.lng);
+        map.flyTo(proj, 14, { duration: 0.6 });
         // open popup
         layerGroup.eachLayer(layer => {
-          if (layer.getLatLng && Math.abs(layer.getLatLng().lat - loc.lat) < 1e-6 && Math.abs(layer.getLatLng().lng - loc.lng) < 1e-6) {
+          if (layer.getLatLng && Math.abs(layer.getLatLng().lat - proj[0]) < 1e-6 && Math.abs(layer.getLatLng().lng - proj[1]) < 1e-6) {
             layer.openPopup();
           }
         });
@@ -698,8 +781,8 @@ async function getGooglePlaceCoords(placeId) {
     }, (place, status) => {
       if (status !== 'OK' || !place || !place.geometry) return resolve(null);
       resolve({
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng(),
+        // Google returns GCJ-02 in China; convert back to WGS-84 for storage
+        ...(function(){ const [_la,_ln] = gcj02ToWgs84(place.geometry.location.lat(), place.geometry.location.lng()); return { lat:_la, lng:_ln }; })(),
         name: place.name,
         address: place.formatted_address
       });
