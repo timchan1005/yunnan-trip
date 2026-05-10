@@ -1600,9 +1600,64 @@ body.view-budget .fab {
   .status-pill.unpaid  { background: rgba(226, 96, 76, 0.14); color: #e2604c; }
   .status-pill.pending { background: rgba(236, 185, 104, 0.18); color: #ecb968; }
 
-  /* Budget summary card gradient */
-  .budget-summary {
+  /* ===== Budget panel — dark surfaces ===== */
+  /* Inactive summary cards: dark surface, not white */
+  .summary-card {
+    background: var(--surface);
+    border-color: var(--line);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  }
+  /* Primary card keeps its gradient (already defined in base) — boost contrast */
+  .summary-card.primary {
     background: linear-gradient(135deg, var(--accent-2), #2a4870);
+    border-color: transparent;
+    color: white;
+  }
+  .summary-card.primary .summary-label,
+  .summary-card.primary .summary-sub { opacity: 0.92; }
+
+  /* Breakdown card */
+  .breakdown-card {
+    background: var(--surface);
+    border-color: var(--line);
+  }
+  .breakdown-bar { background: var(--surface-2); }
+  .legend-amt { color: var(--ink); }
+  .inline-field input { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+  .inline-field input:focus { background: var(--surface); }
+
+  /* Category filter chips */
+  .cat-btn {
+    background: var(--surface);
+    border-color: var(--line);
+    color: var(--ink-2);
+  }
+  .cat-btn:hover { border-color: var(--ink-3); color: var(--ink); }
+  .cat-btn.active {
+    background: var(--ink);
+    color: #0f1115;
+    border-color: var(--ink);
+  }
+
+  /* Expense rows */
+  .expense-row {
+    background: var(--surface);
+    border-color: var(--line);
+  }
+  .expense-row:hover {
+    border-color: var(--ink-3);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .expense-meta .day-tag {
+    background: var(--surface-2);
+    color: var(--ink-2);
+  }
+
+  /* Empty state */
+  .expense-empty {
+    background: var(--surface);
+    border-color: var(--line);
+    color: var(--ink-2);
   }
 
   /* Leaflet attribution control */
