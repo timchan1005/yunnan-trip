@@ -165,7 +165,7 @@ function setBaseLayer(name) {
     b.classList.toggle('active', b.dataset.layer === name);
   });
   // Re-render markers/routes since coordinate system may have changed
-  if (typeof renderMap === 'function' && map) renderMap();
+  if (typeof renderMap === 'function' && map && typeof layerGroup !== 'undefined' && layerGroup) renderMap();
 }
 
 function initMap() {
@@ -174,7 +174,7 @@ function initMap() {
     attributionControl: false
   }).setView([26.5, 100.5], 7);
 
-  setBaseLayer('satellite');
+  setBaseLayer('amap-satellite');
 
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
