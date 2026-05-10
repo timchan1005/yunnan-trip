@@ -812,14 +812,6 @@ document.addEventListener('DOMContentLoaded', () => {
     openEdit(dayIdx, null, false, true);
   });
 
-  document.getElementById('btn-export').addEventListener('click', exportJSON);
-  document.getElementById('btn-import').addEventListener('click', () => document.getElementById('file-import').click());
-  document.getElementById('file-import').addEventListener('change', e => {
-    if (e.target.files[0]) importJSON(e.target.files[0]);
-    e.target.value = '';
-  });
-  document.getElementById('btn-reset').addEventListener('click', resetState);
-
   // Modal buttons
   document.getElementById('btn-close-modal').addEventListener('click', closeEdit);
   document.getElementById('btn-cancel').addEventListener('click', closeEdit);

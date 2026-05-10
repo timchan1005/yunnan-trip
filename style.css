@@ -125,17 +125,28 @@ input, select, textarea { font-family: inherit; font-size: 16px; /* prevent iOS 
   flex-wrap: wrap;
   gap: 8px;
   padding: 0 14px;
+  /* Wrap mode (desktop): no pointer events on the rail itself */
   pointer-events: none;
 }
+/* Phone: scroll horizontally; rail must accept touches for native momentum scrolling */
 @media (max-width: 720px) {
   .day-rail {
     flex-wrap: nowrap;
     overflow-x: auto;
+    overflow-y: hidden;
+    pointer-events: auto;             /* allow touch-scroll on iOS */
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
+    overscroll-behavior-x: contain;   /* don't bounce the page when reaching edge */
+    touch-action: pan-x;              /* tell iOS this is a horizontal scroll surface */
+    padding-bottom: 4px;              /* breathing room for active scale */
   }
   .day-rail::-webkit-scrollbar { display: none; }
+  /* Make the fade overlay stop short of the right edge so last chip is reachable */
+  .day-rail-wrap::after {
+    pointer-events: none;
+  }
 }
 .day-chip {
   pointer-events: auto;
