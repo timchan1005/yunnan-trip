@@ -93,7 +93,10 @@ function setBaseLayer(name) {
 function initMap() {
   map = L.map('map', {
     zoomControl: false,
-    attributionControl: false
+    attributionControl: false,
+    doubleClickZoom: true,        // desktop double-click zooms in (to cursor)
+    zoomAnimation: true,
+    tap: false                    // disable Leaflet's tap shim — we handle iOS taps ourselves
   }).setView([26.5, 100.5], 7);
 
   setBaseLayer('map');
@@ -104,6 +107,7 @@ function initMap() {
   layerGroup = L.layerGroup().addTo(map);
 
   map.on('click', (e) => {
+    if (suppressNextClick) { suppressNextClick = false; return; }
     if (pickingMode) {
       const [wlat, wlng] = unprojectLatLng(e.latlng.lat, e.latlng.lng);
       pickingMode.onPicked(wlat, wlng);
@@ -111,6 +115,12 @@ function initMap() {
       return;
     }
     showAddHerePopup(e.latlng);
+  });
+
+  // Desktop double-click is handled by Leaflet's doubleClickZoom.
+  // We also hook dblclick to dismiss any add-here popup that opened from the first click.
+  map.on('dblclick', () => {
+    if (currentClickPopup) { map.closePopup(currentClickPopup); currentClickPopup = null; }
   });
 
   // iOS long-press + desktop right-click + Android long-press
@@ -121,31 +131,45 @@ function initMap() {
   attachLongPress();
 }
 
-// --- iOS long-press support (Safari does not fire contextmenu reliably) ---
+// --- iOS touch handlers: long-press to add, double-tap to zoom in ---
+// (Safari does not fire `contextmenu` and Leaflet's tap shim conflicts with our gestures.)
+let suppressNextClick = false;
+
 function attachLongPress() {
   const el = document.getElementById('map');
   if (!el) return;
-  let timer = null;
+  let holdTimer = null;
   let startXY = null;
+  let startTime = 0;
+  let moved = false;
+  let lastTapTime = 0;
+  let lastTapXY = null;
   const HOLD_MS = 550;
-  const MOVE_TOL = 12; // px
+  const MOVE_TOL = 12;            // px tolerance for long-press
+  const TAP_MAX_MS = 250;         // a quick tap is < 250ms
+  const TAP_MOVE_TOL = 14;        // px tolerance for tap
+  const DOUBLE_TAP_MS = 320;      // max gap between two taps
+  const DOUBLE_TAP_DIST = 40;     // max px between two tap positions
 
-  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  const cancelHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
 
   el.addEventListener('touchstart', (ev) => {
     if (pickingMode) return;
-    if (!ev.touches || ev.touches.length !== 1) return;
+    if (!ev.touches || ev.touches.length !== 1) { cancelHold(); return; }
     const t = ev.touches[0];
     startXY = { x: t.clientX, y: t.clientY };
-    cancel();
-    timer = setTimeout(() => {
-      timer = null;
-      // Convert client coords to map latlng
+    startTime = Date.now();
+    moved = false;
+    cancelHold();
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
       const rect = el.getBoundingClientRect();
       const point = L.point(startXY.x - rect.left, startXY.y - rect.top);
       const latlng = map.containerPointToLatLng(point);
-      // Haptic feedback if supported
       if (navigator.vibrate) { try { navigator.vibrate(20); } catch (_) {} }
+      // long-press also suppresses the trailing synthetic click
+      suppressNextClick = true;
+      lastTapTime = 0; // long-press resets tap chain
       showAddHerePopup(latlng);
     }, HOLD_MS);
   }, { passive: true });
@@ -155,12 +179,58 @@ function attachLongPress() {
     const t = ev.touches[0];
     const dx = t.clientX - startXY.x;
     const dy = t.clientY - startXY.y;
-    if (Math.hypot(dx, dy) > MOVE_TOL) cancel();
+    if (Math.hypot(dx, dy) > MOVE_TOL) {
+      moved = true;
+      cancelHold();
+    }
   }, { passive: true });
 
-  ['touchend', 'touchcancel'].forEach(evt => {
-    el.addEventListener(evt, cancel, { passive: true });
-  });
+  el.addEventListener('touchend', (ev) => {
+    cancelHold();
+    if (!startXY) return;
+    const dt = Date.now() - startTime;
+    const endXY = (ev.changedTouches && ev.changedTouches[0])
+      ? { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY }
+      : startXY;
+    const moveDist = Math.hypot(endXY.x - startXY.x, endXY.y - startXY.y);
+    const isQuickTap = dt < TAP_MAX_MS && moveDist < TAP_MOVE_TOL && !moved;
+
+    if (isQuickTap) {
+      const now = Date.now();
+      const gap = now - lastTapTime;
+      const dist = lastTapXY ? Math.hypot(endXY.x - lastTapXY.x, endXY.y - lastTapXY.y) : Infinity;
+      if (lastTapTime && gap < DOUBLE_TAP_MS && dist < DOUBLE_TAP_DIST) {
+        // --- Double-tap: zoom in toward tap position (Google-Maps style) ---
+        ev.preventDefault?.();
+        suppressNextClick = true; // swallow the synthetic click that follows touchend
+        if (currentClickPopup) { map.closePopup(currentClickPopup); currentClickPopup = null; }
+        const rect = el.getBoundingClientRect();
+        const pt = L.point(endXY.x - rect.left, endXY.y - rect.top);
+        const latlng = map.containerPointToLatLng(pt);
+        const targetZoom = Math.min(map.getMaxZoom(), map.getZoom() + 1);
+        // setZoomAround keeps the tapped point under the finger as we zoom in
+        map.setZoomAround(latlng, targetZoom, { animate: true });
+        if (navigator.vibrate) { try { navigator.vibrate(8); } catch (_) {} }
+        lastTapTime = 0;
+        lastTapXY = null;
+        return;
+      }
+      // First tap of a potential double-tap — record but let the synthetic click run
+      // (so single tap still drives Leaflet click → showAddHerePopup).
+      lastTapTime = now;
+      lastTapXY = endXY;
+    } else {
+      // Not a tap (drag, long-press, multi-touch): reset tap chain
+      lastTapTime = 0;
+      lastTapXY = null;
+    }
+  }, { passive: false });
+
+  el.addEventListener('touchcancel', () => {
+    cancelHold();
+    lastTapTime = 0;
+    lastTapXY = null;
+  }, { passive: true });
 }
 
 // --- Click-to-add popup with reverse geocoding ---
