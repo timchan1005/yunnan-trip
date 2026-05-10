@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
 
@@ -41,6 +41,27 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <span>搜尋地點…</span>
         </button>
+      </div>
+      <div class="sync-wrap" id="sync-wrap" hidden>
+        <button class="sync-badge" id="sync-badge" aria-label="同步狀態" title="同步狀態">
+          <svg class="sync-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span class="sync-label" id="sync-label">同步</span>
+        </button>
+        <div class="sync-menu" id="sync-menu" hidden role="menu">
+          <div class="sync-menu-status" id="sync-menu-status">未連接</div>
+          <button class="sync-menu-item" data-act="pull" role="menuitem">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>從雲端拉取</span>
+          </button>
+          <button class="sync-menu-item" data-act="push" role="menuitem">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>立即上傳</span>
+          </button>
+          <button class="sync-menu-item" data-act="rename" role="menuitem">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span id="sync-device-label">裝置：</span>
+          </button>
+        </div>
       </div>
       <div class="view-tabs" role="tablist" aria-label="切換檢視">
         <button class="view-tab active" data-view="map" role="tab" aria-selected="true">
@@ -360,12 +381,13 @@
         <textarea id="e-note" rows="2" placeholder="例：含早餐、確認號 ABC123"></textarea>
       </label>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer expense-modal-footer">
       <button class="btn-danger" id="btn-delete-expense">刪除</button>
       <div class="modal-footer-right">
         <button class="btn-ghost" id="btn-cancel-expense">取消</button>
         <button class="btn-primary" id="btn-save-expense">儲存</button>
       </div>
+      <div class="modal-footer-hint" id="expense-save-hint" hidden>儲存後會自動上傳雲端</div>
     </div>
   </div>
 </div>
@@ -393,7 +415,8 @@
   })();
 </script>
 <script src="data.js"></script>
-<script src="app.js?v=13"></script>
+<script src="sync.js?v=14"></script>
+<script src="app.js?v=14"></script>
 
 </body>
 </html>

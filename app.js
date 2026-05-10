@@ -48,6 +48,7 @@ function loadState() {
   return JSON.parse(JSON.stringify(window.DEFAULT_ITINERARY));
 }
 function saveState() {
+  scheduleCloudSync();
   try { safeStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   catch (e) { console.warn('storage write failed', e); }
 }
@@ -941,6 +942,29 @@ function renderAll() {
 
 // --- Public API for popup buttons ---
 window.app = {
+  // Adapters used by sync.js to read/write app data:
+  getState() { return state; },
+  setState(s) {
+    if (!s || !s.days) return;
+    state = s;
+    try { safeStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+    try { renderAll(); } catch (_) {}
+  },
+  getExpenses() { return expenses; },
+  setExpenses(arr) {
+    if (!Array.isArray(arr)) return;
+    expenses = arr;
+    try { safeStorage.setItem(BUDGET_KEY, JSON.stringify(expenses)); } catch (_) {}
+    try { if (typeof renderBudget === 'function') renderBudget(); } catch (_) {}
+  },
+  getBudgetSettings() { return settings; },
+  setBudgetSettings(s) {
+    if (!s || typeof s !== 'object') return;
+    settings = { ...settings, ...s };
+    try { safeStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
+    try { if (typeof renderBudget === 'function') renderBudget(); } catch (_) {}
+  },
+
   editFromPopup(dayIdx, spotIdx, isHotel) {
     openEdit(dayIdx, spotIdx === -1 ? null : spotIdx, isHotel, false);
   },
@@ -1267,10 +1291,17 @@ function loadBudget() {
   } catch (_) {}
 }
 function saveBudget() {
+  scheduleCloudSync();
   try { safeStorage.setItem(BUDGET_KEY, JSON.stringify(expenses)); } catch (_) {}
 }
 function saveSettings() {
+  scheduleCloudSync();
   try { safeStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
+}
+
+// --- Cloud sync hook (only fires if sync.js is configured) ---
+function scheduleCloudSync() {
+  try { window.cloudSync && window.cloudSync.scheduleSync(); } catch (_) {}
 }
 
 function toCNY(amount, currency) {
@@ -1706,6 +1737,90 @@ function renderGlobalSearchResults(items) {
 // auto-init when DOM ready (works alongside the main DOMContentLoaded handler above)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', wireBudget);
+  document.addEventListener('DOMContentLoaded', wireCloudSyncUI);
 } else {
   wireBudget();
+  wireCloudSyncUI();
+}
+
+/* ---- Cloud sync UI (sync badge in topbar + expense modal hint) ---- */
+function wireCloudSyncUI() {
+  if (!window.cloudSync) return;
+  const wrap   = document.getElementById('sync-wrap');
+  const badge  = document.getElementById('sync-badge');
+  const label  = document.getElementById('sync-label');
+  const menu   = document.getElementById('sync-menu');
+  const status = document.getElementById('sync-menu-status');
+  const devLbl = document.getElementById('sync-device-label');
+  const hint   = document.getElementById('expense-save-hint');
+
+  const configured = window.cloudSync.isConfigured();
+  if (!wrap) return;
+  wrap.hidden = false; // always show, but tone changes when not configured
+  if (hint) hint.hidden = !configured;
+
+  // Reflect current device name in the menu item
+  const refreshDeviceLabel = () => {
+    if (devLbl) devLbl.textContent = '裝置：' + window.cloudSync.getDeviceName();
+  };
+  refreshDeviceLabel();
+
+  // Hook status indicator
+  window.cloudSync.onStatus((s) => {
+    badge.classList.remove('is-syncing', 'is-synced', 'is-error', 'is-conflict', 'is-pending');
+    let text = '同步';
+    let title = '';
+    if (!configured) { text = '未啟用'; title = '雲端同步未設定 — 請編輯 config.js'; }
+    else if (s.state === 'syncing') { badge.classList.add('is-syncing'); text = '同步中'; }
+    else if (s.state === 'pending') { badge.classList.add('is-pending'); text = '待上傳'; }
+    else if (s.state === 'synced')  { badge.classList.add('is-synced');  text = '已同步'; }
+    else if (s.state === 'conflict'){ badge.classList.add('is-conflict');text = '衝突'; }
+    else if (s.state === 'error')   { badge.classList.add('is-error');   text = '錯誤'; }
+    if (label) label.textContent = text;
+    if (s.message) title = s.message;
+    badge.title = title || text;
+    if (status) status.textContent = s.message || (configured ? '空閒' : '未設定 JSONBin 憑證');
+  });
+
+  // Toggle menu
+  badge.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.hidden = !menu.hidden;
+  });
+  document.addEventListener('click', (e) => {
+    if (!wrap.contains(e.target)) menu.hidden = true;
+  });
+
+  // Menu actions
+  menu.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act;
+    menu.hidden = true;
+    if (!configured) {
+      alert('雲端同步未設定。請打開 config.js，填入 JSONBIN_BIN_ID 同 JSONBIN_ACCESS_KEY，重新部署。');
+      return;
+    }
+    if (act === 'pull') {
+      try { await window.cloudSync.pullCloud({ force: true }); }
+      catch (_) {}
+    } else if (act === 'push') {
+      try { await window.cloudSync.pushCloud({ force: true }); }
+      catch (_) {}
+    } else if (act === 'rename') {
+      const cur = window.cloudSync.getDeviceName();
+      const next = prompt('裝置名稱（用來識別係邊部機嘅改動）：', cur);
+      if (next && next.trim()) {
+        window.cloudSync.setDeviceName(next.trim().slice(0, 20));
+        refreshDeviceLabel();
+      }
+    }
+  });
+
+  // Auto pull on startup if configured
+  if (configured) {
+    setTimeout(() => {
+      window.cloudSync.pullCloud().catch(() => {});
+    }, 600);
+  }
 }

@@ -1411,6 +1411,88 @@ body.view-budget .fab {
   .global-search-item-actions { padding-left: 0; }
 }
 
+/* ============ Cloud sync badge & menu ============ */
+.sync-wrap {
+  position: relative;
+  margin-right: 8px;
+}
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.sync-badge:hover { background: var(--surface-2); }
+.sync-badge .sync-icon { flex-shrink: 0; }
+.sync-badge.is-syncing .sync-icon { animation: sync-spin 1s linear infinite; }
+.sync-badge.is-synced  { border-color: rgba(42, 157, 143, 0.45); color: #2a9d8f; }
+.sync-badge.is-error,
+.sync-badge.is-conflict { border-color: rgba(193, 67, 46, 0.5); color: #c1432e; }
+.sync-badge.is-pending  { border-color: rgba(232, 164, 68, 0.55); color: #b1791b; }
+@keyframes sync-spin { to { transform: rotate(360deg); } }
+
+.sync-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+  padding: 6px;
+  z-index: 1100;
+}
+.sync-menu-status {
+  padding: 8px 10px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+.sync-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.sync-menu-item:hover { background: var(--surface-2); }
+.sync-menu-item svg { flex-shrink: 0; color: var(--ink-3); }
+.sync-menu-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .sync-badge .sync-label { display: none; }
+  .sync-badge { padding: 7px 9px; }
+  .sync-menu { min-width: 200px; right: -4px; }
+}
+
+.expense-modal-footer { flex-wrap: wrap; row-gap: 6px; }
+.modal-footer-hint {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  text-align: right;
+  margin-top: 2px;
+}
+
 /* ============ Dark mode (auto, via prefers-color-scheme) ============ */
 @media (prefers-color-scheme: dark) {
   :root {
