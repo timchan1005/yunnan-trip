@@ -50,122 +50,42 @@ function saveState() {
   catch (e) { console.warn('storage write failed', e); }
 }
 
-// --- Coordinate transforms (WGS-84 ↔ GCJ-02 for China-only tiles) ---
-// Reference implementation of GCJ-02 “Mars coordinates” offset.
-// Used for Google tile layers in China where roads are GCJ-02 but data is WGS-84.
-const GCJ_A = 6378245.0;
-const GCJ_EE = 0.00669342162296594323;
-function _outOfChina(lat, lng) {
-  return !(lng > 73.66 && lng < 135.05 && lat > 3.86 && lat < 53.55);
-}
-function _transformLat(x, y) {
-  let r = -100 + 2*x + 3*y + 0.2*y*y + 0.1*x*y + 0.2*Math.sqrt(Math.abs(x));
-  r += (20*Math.sin(6*x*Math.PI) + 20*Math.sin(2*x*Math.PI)) * 2/3;
-  r += (20*Math.sin(y*Math.PI) + 40*Math.sin(y/3*Math.PI)) * 2/3;
-  r += (160*Math.sin(y/12*Math.PI) + 320*Math.sin(y*Math.PI/30.0)) * 2/3;
-  return r;
-}
-function _transformLng(x, y) {
-  let r = 300 + x + 2*y + 0.1*x*x + 0.1*x*y + 0.1*Math.sqrt(Math.abs(x));
-  r += (20*Math.sin(6*x*Math.PI) + 20*Math.sin(2*x*Math.PI)) * 2/3;
-  r += (20*Math.sin(x*Math.PI) + 40*Math.sin(x/3*Math.PI)) * 2/3;
-  r += (150*Math.sin(x/12*Math.PI) + 300*Math.sin(x/30*Math.PI)) * 2/3;
-  return r;
-}
-function wgs84ToGcj02(lat, lng) {
-  if (_outOfChina(lat, lng)) return [lat, lng];
-  let dLat = _transformLat(lng - 105, lat - 35);
-  let dLng = _transformLng(lng - 105, lat - 35);
-  const radLat = lat / 180 * Math.PI;
-  let magic = Math.sin(radLat);
-  magic = 1 - GCJ_EE * magic * magic;
-  const sqrtMagic = Math.sqrt(magic);
-  dLat = (dLat * 180) / ((GCJ_A * (1 - GCJ_EE)) / (magic * sqrtMagic) * Math.PI);
-  dLng = (dLng * 180) / (GCJ_A / sqrtMagic * Math.cos(radLat) * Math.PI);
-  return [lat + dLat, lng + dLng];
-}
-// Inverse: GCJ-02 → WGS-84 via iterative refinement (good to ~1e-7 deg)
-function gcj02ToWgs84(lat, lng) {
-  if (_outOfChina(lat, lng)) return [lat, lng];
-  let wlat = lat, wlng = lng;
-  for (let i = 0; i < 5; i++) {
-    const [glat, glng] = wgs84ToGcj02(wlat, wlng);
-    wlat += (lat - glat);
-    wlng += (lng - glng);
-  }
-  return [wlat, wlng];
-}
-// Inverse of projectLatLng: takes display-CRS coords from current layer
-// and returns WGS-84 for storage.
-function unprojectLatLng(lat, lng) {
-  const cfg = BASE_LAYERS[currentLayerName];
-  if (cfg && cfg.isGcj) return gcj02ToWgs84(lat, lng);
-  return [lat, lng];
-}
-
 // --- Map setup ---
+// All layers are WGS-84 (international standard) so pins align with the basemap.
 let baseLayer;
-let currentLayerName = 'amap-satellite';
-// Layers flagged isGcj=true expect input coordinates in GCJ-02. We feed our
-// WGS-84 data through wgs84ToGcj02 before rendering markers/polylines.
+let currentLayerName = 'map';
 const BASE_LAYERS = {
-  // 高德地圖 (AutoNavi/AMap) — native GCJ-02 satellite + roads, perfect alignment in China
-  'amap-satellite': {
-    url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
-    overlayUrl: 'https://webst0{s}.is.autonavi.com/appmaptile?style=8&x={x}&y={y}&z={z}',
-    options: { subdomains: ['1','2','3','4'], maxZoom: 19, attribution: '© 高德地圖' },
-    isGcj: true
-  },
-  // 高德街道地圖
-  'amap-road': {
-    url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
-    options: { subdomains: ['1','2','3','4'], maxZoom: 19, attribution: '© 高德地圖' },
-    isGcj: true
-  },
-  // Google Hybrid (satellite + Traditional Chinese labels) — also GCJ-02 in China
-  satellite: {
-    url: 'https://mt{s}.google.com/vt/lyrs=y&hl=zh-TW&gl=tw&x={x}&y={y}&z={z}',
-    options: { subdomains: ['0','1','2','3'], maxZoom: 20, attribution: '© Google' },
-    isGcj: true
-  },
-  // Google Roads (GCJ-02 in China)
+  // CartoDB Voyager — clean street map with road names in local language
   map: {
-    url: 'https://mt{s}.google.com/vt/lyrs=m&hl=zh-TW&gl=tw&x={x}&y={y}&z={z}',
-    options: { subdomains: ['0','1','2','3'], maxZoom: 20, attribution: '© Google' },
-    isGcj: true
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    options: { subdomains: 'abcd', maxZoom: 19, attribution: '© OSM · © CARTO' }
   },
-  // OpenTopoMap (WGS-84) for terrain
+  // Esri World Imagery — high-res WGS-84 satellite (no labels)
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    options: { maxZoom: 19, attribution: '© Esri · Earthstar Geographics' }
+  },
+  // OpenTopoMap — terrain/topographic
   terrain: {
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    options: { subdomains: 'abc', maxZoom: 17, attribution: '© OpenTopoMap · © OSM' },
-    isGcj: false
+    options: { subdomains: 'abc', maxZoom: 17, attribution: '© OpenTopoMap · © OSM' }
   }
 };
 
-// Returns [lat,lng] adjusted for the current layer’s coordinate system
-function projectLatLng(lat, lng) {
-  const cfg = BASE_LAYERS[currentLayerName];
-  if (cfg && cfg.isGcj) return wgs84ToGcj02(lat, lng);
-  return [lat, lng];
-}
+// Pure pass-through (kept for API stability with existing call sites)
+function projectLatLng(lat, lng) { return [lat, lng]; }
+function unprojectLatLng(lat, lng) { return [lat, lng]; }
 
-let overlayLayer;
 function setBaseLayer(name) {
-  if (!BASE_LAYERS[name]) name = 'amap-satellite';
+  if (!BASE_LAYERS[name]) name = 'map';
   if (baseLayer) map.removeLayer(baseLayer);
-  if (overlayLayer) { map.removeLayer(overlayLayer); overlayLayer = null; }
   const cfg = BASE_LAYERS[name];
   currentLayerName = name;
   baseLayer = L.tileLayer(cfg.url, cfg.options).addTo(map);
-  if (cfg.overlayUrl) {
-    overlayLayer = L.tileLayer(cfg.overlayUrl, cfg.options).addTo(map);
-  }
   if (layerGroup) layerGroup.eachLayer(l => l.bringToFront && l.bringToFront());
   document.querySelectorAll('#layer-toggle button').forEach(b => {
     b.classList.toggle('active', b.dataset.layer === name);
   });
-  // Re-render markers/routes since coordinate system may have changed
-  if (typeof renderMap === 'function' && map && typeof layerGroup !== 'undefined' && layerGroup) renderMap();
 }
 
 function initMap() {
@@ -174,7 +94,7 @@ function initMap() {
     attributionControl: false
   }).setView([26.5, 100.5], 7);
 
-  setBaseLayer('amap-satellite');
+  setBaseLayer('map');
 
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
@@ -186,8 +106,210 @@ function initMap() {
       const [wlat, wlng] = unprojectLatLng(e.latlng.lat, e.latlng.lng);
       pickingMode.onPicked(wlat, wlng);
       exitPickingMode();
+      return;
     }
+    showAddHerePopup(e.latlng);
   });
+
+  // iOS long-press + desktop right-click + Android long-press
+  map.on('contextmenu', (e) => {
+    if (pickingMode) return;
+    showAddHerePopup(e.latlng);
+  });
+  attachLongPress();
+}
+
+// --- iOS long-press support (Safari does not fire contextmenu reliably) ---
+function attachLongPress() {
+  const el = document.getElementById('map');
+  if (!el) return;
+  let timer = null;
+  let startXY = null;
+  const HOLD_MS = 550;
+  const MOVE_TOL = 12; // px
+
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+
+  el.addEventListener('touchstart', (ev) => {
+    if (pickingMode) return;
+    if (!ev.touches || ev.touches.length !== 1) return;
+    const t = ev.touches[0];
+    startXY = { x: t.clientX, y: t.clientY };
+    cancel();
+    timer = setTimeout(() => {
+      timer = null;
+      // Convert client coords to map latlng
+      const rect = el.getBoundingClientRect();
+      const point = L.point(startXY.x - rect.left, startXY.y - rect.top);
+      const latlng = map.containerPointToLatLng(point);
+      // Haptic feedback if supported
+      if (navigator.vibrate) { try { navigator.vibrate(20); } catch (_) {} }
+      showAddHerePopup(latlng);
+    }, HOLD_MS);
+  }, { passive: true });
+
+  el.addEventListener('touchmove', (ev) => {
+    if (!startXY || !ev.touches || !ev.touches[0]) return;
+    const t = ev.touches[0];
+    const dx = t.clientX - startXY.x;
+    const dy = t.clientY - startXY.y;
+    if (Math.hypot(dx, dy) > MOVE_TOL) cancel();
+  }, { passive: true });
+
+  ['touchend', 'touchcancel'].forEach(evt => {
+    el.addEventListener(evt, cancel, { passive: true });
+  });
+}
+
+// --- Click-to-add popup with reverse geocoding ---
+let currentClickPopup = null;
+
+async function showAddHerePopup(latlng) {
+  // Close any prior temp popup
+  if (currentClickPopup) { map.closePopup(currentClickPopup); currentClickPopup = null; }
+
+  const lat = +latlng.lat.toFixed(6);
+  const lng = +latlng.lng.toFixed(6);
+  const popupId = 'add-here-' + Date.now();
+
+  // Initial loading content
+  const loadingHtml = `
+    <div class="add-here-popup" data-popup-id="${popupId}">
+      <div class="add-here-coords">📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+      <div class="add-here-addr add-here-loading">搜尋地址中…</div>
+      <div class="add-here-actions">
+        <select class="add-here-day" data-role="day"></select>
+        <button class="btn-primary btn-sm add-here-btn" data-role="add">加入行程</button>
+      </div>
+      <button class="btn-link btn-sm add-here-detail" data-role="detail">完整編輯…</button>
+    </div>`;
+
+  currentClickPopup = L.popup({ maxWidth: 280, closeButton: true, autoPan: true })
+    .setLatLng(latlng)
+    .setContent(loadingHtml)
+    .openOn(map);
+
+  // Wire up after popup is in DOM
+  requestAnimationFrame(() => wireAddHerePopup(popupId, { lat, lng, name: '', address: '' }));
+
+  // Reverse geocode in background
+  let info = await reverseGeocode(lat, lng);
+  if (!info) info = { name: '', address: `${lat}, ${lng}` };
+
+  // If name still empty, derive from first address segment
+  if (!info.name && info.address) {
+    info.name = info.address.split(',')[0].trim();
+  }
+
+  // Update popup content with resolved info (re-render keeping wiring)
+  const root = document.querySelector(`[data-popup-id="${popupId}"]`);
+  if (!root) return;
+  const addrEl = root.querySelector('.add-here-addr');
+  if (addrEl) {
+    addrEl.classList.remove('add-here-loading');
+    addrEl.innerHTML = (info.name ? `<strong>${escapeHTML(info.name)}</strong><br>` : '') +
+                       (info.address ? `<span class="add-here-addr-text">${escapeHTML(info.address)}</span>` : '<span class="add-here-addr-text">無地址資料</span>');
+  }
+  // Refresh stored info on container
+  root.dataset.name = info.name || '';
+  root.dataset.address = info.address || '';
+}
+
+function wireAddHerePopup(popupId, fallback) {
+  const root = document.querySelector(`[data-popup-id="${popupId}"]`);
+  if (!root) return;
+  // Populate day select
+  const daySel = root.querySelector('[data-role="day"]');
+  daySel.innerHTML = state.days.map((d, i) => {
+    const sel = (i === Math.max(0, activeDayIdx)) ? 'selected' : '';
+    return `<option value="${i}" ${sel}>Day ${d.day} · ${d.city}</option>`;
+  }).join('');
+
+  // Quick add
+  root.querySelector('[data-role="add"]').addEventListener('click', () => {
+    const dayIdx = parseInt(daySel.value, 10);
+    // Prefer resolved name; if missing, use the first segment of the address; finally fall back
+    let name = root.dataset.name || fallback.name || '';
+    if (!name) {
+      const addr = root.dataset.address || '';
+      if (addr) name = addr.split(',')[0].trim();
+    }
+    if (!name) name = '新地點';
+    const lat = parseFloat(fallback.lat);
+    const lng = parseFloat(fallback.lng);
+    state.days[dayIdx].spots.push({ name, lat, lng, note: '' });
+    saveState();
+    if (currentClickPopup) { map.closePopup(currentClickPopup); currentClickPopup = null; }
+    activeDayIdx = dayIdx;
+    renderAll();
+    toast(`已加入 Day ${state.days[dayIdx].day}：${name}`);
+  });
+
+  // Open full edit modal
+  root.querySelector('[data-role="detail"]').addEventListener('click', () => {
+    const dayIdx = parseInt(daySel.value, 10);
+    if (currentClickPopup) { map.closePopup(currentClickPopup); currentClickPopup = null; }
+    openEdit(dayIdx, null, false, true);
+    // Pre-fill modal
+    setTimeout(() => {
+      const name = root.dataset.name || fallback.name || '';
+      document.getElementById('f-name').value = name;
+      document.getElementById('f-lat').value = (+fallback.lat).toFixed(6);
+      document.getElementById('f-lng').value = (+fallback.lng).toFixed(6);
+      const addr = root.dataset.address || '';
+      if (addr) document.getElementById('f-note').value = addr;
+    }, 60);
+  });
+}
+
+async function reverseGeocode(lat, lng) {
+  // Race Google + Nominatim: whichever returns first wins. Google sometimes silently
+  // never invokes its callback (e.g. referrer blocked), so we always start Nominatim too.
+  const googleP = (async () => {
+    try {
+      if (!(window.google && window.google.maps && window.google.maps.Geocoder)) return null;
+      const geocoder = new google.maps.Geocoder();
+      return await new Promise(resolve => {
+        const t = setTimeout(() => resolve(null), 4000);
+        geocoder.geocode({ location: { lat, lng }, language: 'zh-HK', region: 'HK' }, (results, status) => {
+          clearTimeout(t);
+          if (status === 'OK' && results && results[0]) {
+            const r0 = results[0];
+            let name = '';
+            const poi = results.find(r => r.types && (r.types.includes('point_of_interest') || r.types.includes('establishment')));
+            if (poi && poi.address_components && poi.address_components[0]) name = poi.address_components[0].long_name;
+            resolve({ name, address: r0.formatted_address });
+          } else resolve(null);
+        });
+      });
+    } catch (_) { return null; }
+  })();
+
+  const osmP = (async () => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=zh-Hant,zh,en&zoom=18`;
+      const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      if (!data) return null;
+      let name = data.namedetails?.name || data.name || '';
+      if (!name && data.address) {
+        // Try most-specific to least-specific tags
+        const a = data.address;
+        name = a.attraction || a.tourism || a.amenity || a.building || a.shop
+             || a.leisure || a.natural || a.historic || a.road
+             || a.hamlet || a.village || a.suburb || a.neighbourhood
+             || a.town || a.city_district || a.city || a.county
+             || (data.display_name ? data.display_name.split(',')[0].trim() : '');
+      }
+      return { name, address: data.display_name || '' };
+    } catch (_) { return null; }
+  })();
+
+  // Wait briefly for Google (faster); then fall back to OSM result.
+  const googleResult = await Promise.race([googleP, new Promise(r => setTimeout(() => r('TIMEOUT'), 1500))]);
+  if (googleResult && googleResult !== 'TIMEOUT') return googleResult;
+  return await osmP;
 }
 
 // --- Render markers + route for selected day(s) ---
@@ -748,8 +870,11 @@ async function _initGoogleServices() {
 async function searchPlacesGoogle(query) {
   const ok = await _initGoogleServices();
   if (!ok) return null;
-  // Bias around Yunnan center for relevance
+  // Bias around Yunnan center for relevance. Wrap in 2.5s timeout because
+  // Google's callback may never fire when the API key has referrer issues.
   return new Promise(resolve => {
+    let done = false;
+    const t = setTimeout(() => { if (!done) { done = true; resolve(null); } }, 2500);
     _autocompleteService.getPlacePredictions({
       input: query,
       language: 'zh-HK',
@@ -759,8 +884,10 @@ async function searchPlacesGoogle(query) {
         radius: 400000  // 400 km around Yunnan
       }
     }, (preds, status) => {
+      if (done) return;
+      done = true;
+      clearTimeout(t);
       if (status !== 'OK' || !preds) return resolve([]);
-      // Map to a normalised structure with place_id; we'll resolve coords on click.
       resolve(preds.slice(0, 8).map(p => ({
         source: 'google',
         place_id: p.place_id,
@@ -775,14 +902,19 @@ async function getGooglePlaceCoords(placeId) {
   const ok = await _initGoogleServices();
   if (!ok) return null;
   return new Promise(resolve => {
+    let done = false;
+    const t = setTimeout(() => { if (!done) { done = true; resolve(null); } }, 3000);
     _placesService.getDetails({
       placeId,
       fields: ['geometry', 'name', 'formatted_address']
     }, (place, status) => {
+      if (done) return;
+      done = true;
+      clearTimeout(t);
       if (status !== 'OK' || !place || !place.geometry) return resolve(null);
       resolve({
-        // Google returns GCJ-02 in China; convert back to WGS-84 for storage
-        ...(function(){ const [_la,_ln] = gcj02ToWgs84(place.geometry.location.lat(), place.geometry.location.lng()); return { lat:_la, lng:_ln }; })(),
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng(),
         name: place.name,
         address: place.formatted_address
       });
@@ -792,9 +924,13 @@ async function getGooglePlaceCoords(placeId) {
 
 async function searchPlacesOSM(query) {
   if (!query || query.length < 2) return [];
+  // Bias to Yunnan area (rough bounding box: lon 97.5–106 / lat 21.5–29.5)
   const url = `https://nominatim.openstreetmap.org/search?` + new URLSearchParams({
     q: query, format: 'json', limit: '8', 'accept-language': 'zh-Hant,zh,en',
-    addressdetails: '1'
+    addressdetails: '1', namedetails: '1',
+    countrycodes: 'cn',
+    viewbox: '97.5,29.5,106,21.5', // left, top, right, bottom
+    bounded: '0' // soft bias rather than hard bound
   });
   try {
     const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
@@ -937,6 +1073,9 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('f-search-results').hidden = true;
     }
   });
+
+  // Global search wire-up
+  wireGlobalSearch();
 
   // Fetch description in modal
   document.getElementById('btn-fetch-desc').addEventListener('click', async () => {
@@ -1276,6 +1415,147 @@ function wireBudget() {
 
   document.getElementById('expense-modal').addEventListener('click', e => {
     if (e.target.id === 'expense-modal') closeExpenseModal();
+  });
+}
+
+// --- Global Search ---
+let globalSearchDebounce;
+
+function openGlobalSearch() {
+  const overlay = document.getElementById('global-search-overlay');
+  overlay.hidden = false;
+  setTimeout(() => document.getElementById('global-search-input').focus(), 50);
+}
+function closeGlobalSearch() {
+  document.getElementById('global-search-overlay').hidden = true;
+  document.getElementById('global-search-input').value = '';
+  document.getElementById('global-search-results').innerHTML =
+    '<div class="global-search-empty">輸入關鍵字開始搜尋</div>';
+  document.getElementById('global-search-badge').hidden = true;
+}
+
+function wireGlobalSearch() {
+  document.getElementById('btn-global-search').addEventListener('click', openGlobalSearch);
+  document.getElementById('btn-close-global-search').addEventListener('click', closeGlobalSearch);
+  document.getElementById('global-search-overlay').addEventListener('click', e => {
+    if (e.target.id === 'global-search-overlay') closeGlobalSearch();
+  });
+  // ESC to close
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !document.getElementById('global-search-overlay').hidden) {
+      closeGlobalSearch();
+    }
+  });
+
+  const input = document.getElementById('global-search-input');
+  const resultsBox = document.getElementById('global-search-results');
+  input.addEventListener('input', e => {
+    clearTimeout(globalSearchDebounce);
+    const q = e.target.value.trim();
+    if (!q) {
+      resultsBox.innerHTML = '<div class="global-search-empty">輸入關鍵字開始搜尋</div>';
+      document.getElementById('global-search-badge').hidden = true;
+      return;
+    }
+    resultsBox.innerHTML = '<div class="global-search-empty">搜尋中…</div>';
+    globalSearchDebounce = setTimeout(async () => {
+      const items = await searchPlacesGlobal(q);
+      renderGlobalSearchResults(items);
+    }, 350);
+  });
+}
+
+async function searchPlacesGlobal(q) {
+  // Reuse existing searchPlaces but redirect badge target
+  const g = await searchPlacesGoogle(q);
+  if (g && g.length > 0) {
+    setGlobalBadge('google');
+    return g;
+  }
+  setGlobalBadge('osm');
+  return await searchPlacesOSM(q);
+}
+
+function setGlobalBadge(source) {
+  const el = document.getElementById('global-search-badge');
+  if (!el) return;
+  if (source === 'google') {
+    el.textContent = 'Google Places';
+    el.className = 'search-source-badge active-google';
+  } else {
+    el.textContent = 'OpenStreetMap';
+    el.className = 'search-source-badge active-osm';
+  }
+  el.hidden = false;
+}
+
+function renderGlobalSearchResults(items) {
+  const box = document.getElementById('global-search-results');
+  if (!items || items.length === 0) {
+    box.innerHTML = '<div class="global-search-empty">找不到相關地點</div>';
+    return;
+  }
+  const dayOptions = state.days.map((d, i) => `<option value="${i}">Day ${d.day} · ${d.city}</option>`).join('');
+  box.innerHTML = items.map((it, i) => {
+    const badge = it.source === 'google'
+      ? '<span class="search-source g">G</span>'
+      : '<span class="search-source o">OSM</span>';
+    return `<div class="global-search-item" data-idx="${i}">
+      <div class="global-search-item-main">
+        ${badge}
+        <div class="global-search-item-text">
+          <div class="global-search-item-name">${escapeHTML(it.name || '')}</div>
+          <div class="global-search-item-addr">${escapeHTML(it.address || '')}</div>
+        </div>
+      </div>
+      <div class="global-search-item-actions">
+        <select class="global-search-day" data-role="day">${dayOptions}</select>
+        <button class="btn-primary btn-sm" data-role="add">加入</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('.global-search-item').forEach(el => {
+    const idx = parseInt(el.dataset.idx, 10);
+    const it = items[idx];
+    const daySel = el.querySelector('[data-role="day"]');
+    daySel.value = String(Math.max(0, activeDayIdx));
+
+    // Click on row (not on actions) -> zoom to location and prefill modal
+    el.querySelector('.global-search-item-main').addEventListener('click', async () => {
+      let lat = it.lat, lng = it.lng, name = it.name;
+      if (it.source === 'google' && it.place_id) {
+        const detail = await getGooglePlaceCoords(it.place_id);
+        if (detail) { lat = detail.lat; lng = detail.lng; name = detail.name || name; }
+      }
+      if (lat == null || lng == null) { toast('取得坐標失敗'); return; }
+      closeGlobalSearch();
+      map.setView([lat, lng], 15);
+      showAddHerePopup(L.latLng(lat, lng));
+    });
+
+    el.querySelector('[data-role="add"]').addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      let lat = it.lat, lng = it.lng, name = it.name;
+      if (it.source === 'google' && it.place_id) {
+        const detail = await getGooglePlaceCoords(it.place_id);
+        if (detail) { lat = detail.lat; lng = detail.lng; name = detail.name || name; }
+      }
+      if (lat == null || lng == null) { toast('取得坐標失敗'); return; }
+      const dayIdx = parseInt(daySel.value, 10);
+      state.days[dayIdx].spots.push({
+        name: name || '新地點',
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+        note: it.address || ''
+      });
+      saveState();
+      activeDayIdx = dayIdx;
+      closeGlobalSearch();
+      renderAll();
+      map.setView([lat, lng], 14);
+      toast(`已加入 Day ${state.days[dayIdx].day}：${name}`);
+    });
   });
 }
 
