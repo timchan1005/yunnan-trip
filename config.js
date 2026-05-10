@@ -19,5 +19,5 @@ window.GOOGLE_MAPS_API_KEY = 'AIzaSyBe_I_b5UlaTCvbFpBgR-t-zCov1b-NPNM';
 // finds the URL (https://timchan1005.github.io/yunnan-trip/) can read AND
 // overwrite this single bin. Use an Access Key (not Master Key) and restrict
 // it to read+update on this bin only — they cannot touch your other bins.
-window.JSONBIN_BIN_ID = '';
-window.JSONBIN_ACCESS_KEY = '';
+window.JSONBIN_BIN_ID = '6a00c53d250b1311c32e70f5';
+window.JSONBIN_ACCESS_KEY = '$2a$10$CS4w6DjDqCnBxKoX4Re/E.cPfVEqDrJjPA81OA192ZffvqpYy92.a';
