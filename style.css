@@ -1189,3 +1189,134 @@ body.view-budget .fab {
 }
 .search-source.g { background: #4285F4; color: white; }
 .search-source.o { background: #7CB342; color: white; }
+
+/* ============ Dark mode (auto, via prefers-color-scheme) ============ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --surface: #181b22;
+    --surface-2: #232732;
+    --ink: #ececef;
+    --ink-2: #b8b9bf;
+    --ink-3: #80828a;
+    --line: #2a2f3a;
+    --accent: #e2604c;        /* slightly brighter Yunnan red */
+    --accent-2: #4f7cba;      /* lifted indigo for contrast */
+    --teal: #4cc4b3;
+    --gold: #ecb968;
+    --danger: #e25c4a;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55), 0 12px 32px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Map base color while tiles load */
+  #map { background: #1a1d24; }
+
+  /* Translucent chip backgrounds (day-rail, layer-toggle) — invert to dark */
+  .day-chip {
+    background: rgba(36, 40, 50, 0.92);
+    color: var(--ink-2);
+  }
+  .day-chip.active { background: var(--ink); color: #0f1115; }
+  .day-chip-all.active { background: var(--accent-2); color: white; }
+
+  .layer-toggle {
+    background: rgba(36, 40, 50, 0.92);
+  }
+
+  /* Day rail fade overlay must match new bg */
+  .day-rail-wrap::after {
+    background: linear-gradient(to left, rgba(15, 17, 21, 0.95), transparent);
+  }
+
+  /* Drawer / column */
+  .drawer { box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5); }
+  .drawer-handle, .drawer-grip { background: rgba(255, 255, 255, 0.06); }
+
+  /* Hotel row tint */
+  .spot-row.is-hotel {
+    background: linear-gradient(90deg, rgba(232, 185, 104, 0.10), transparent);
+  }
+
+  /* Tag pills */
+  .spot-tag.time   { background: rgba(76, 196, 179, 0.15); color: var(--teal); }
+  .spot-tag.hotel  { background: rgba(236, 185, 104, 0.18); color: #ecb968; }
+
+  /* Pin shadows */
+  .pin {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+  }
+
+  /* Modal backdrop */
+  .modal { background: rgba(0, 0, 0, 0.65); }
+
+  /* Modal/inputs */
+  input, select, textarea {
+    background: var(--surface-2);
+    color: var(--ink);
+    border-color: var(--line);
+  }
+  input::placeholder, textarea::placeholder { color: var(--ink-3); }
+  input:focus, select:focus, textarea:focus {
+    box-shadow: 0 0 0 3px rgba(79, 124, 186, 0.25);
+    border-color: var(--accent-2);
+  }
+
+  /* Buttons */
+  .btn-primary:hover { background: #6991ce; }
+  .btn-secondary    { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+  .btn-secondary:hover { background: #2c313e; }
+  .btn-ghost:hover  { background: var(--surface-2); }
+  .btn-danger:hover { background: rgba(226, 92, 74, 0.14); }
+
+  /* Search source badges — pick dark-mode-friendly tints */
+  .search-source-badge.active-google {
+    background: rgba(66, 133, 244, 0.18);
+    color: #8ab4f8;
+    border-color: rgba(66, 133, 244, 0.4);
+  }
+  .search-source-badge.active-osm {
+    background: rgba(124, 179, 66, 0.18);
+    color: #aed581;
+    border-color: rgba(124, 179, 66, 0.4);
+  }
+
+  /* Search results dropdown items */
+  .search-result-item:hover { background: var(--surface-2); }
+
+  /* Section dividers in modal */
+  .form-section-title { border-bottom-color: var(--line); }
+
+  /* Toast / notifications */
+  .toast { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+
+  /* Status pills (budget) */
+  .status-pill.paid    { background: rgba(76, 196, 179, 0.15); color: #4cc4b3; }
+  .status-pill.unpaid  { background: rgba(226, 96, 76, 0.14); color: #e2604c; }
+  .status-pill.pending { background: rgba(236, 185, 104, 0.18); color: #ecb968; }
+
+  /* Budget summary card gradient */
+  .budget-summary {
+    background: linear-gradient(135deg, var(--accent-2), #2a4870);
+  }
+
+  /* Leaflet attribution control */
+  .leaflet-control-attribution {
+    background: rgba(24, 27, 34, 0.85) !important;
+    color: var(--ink-3) !important;
+  }
+  .leaflet-control-attribution a { color: var(--ink-2) !important; }
+
+  /* Leaflet zoom controls */
+  .leaflet-bar a {
+    background: var(--surface) !important;
+    color: var(--ink-2) !important;
+    border-color: var(--line) !important;
+  }
+  .leaflet-bar a:hover { background: var(--surface-2) !important; }
+
+  /* Search-source label badge (G / O letters in result list) — keep brand colors */
+  /* (already brand-correct) */
+}

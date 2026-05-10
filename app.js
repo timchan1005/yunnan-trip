@@ -53,25 +53,25 @@ function saveState() {
 // --- Map setup ---
 let baseLayer;
 const BASE_LAYERS = {
-  map: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  satellite: {
+    url: 'https://mt{s}.google.com/vt/lyrs=y&hl=zh-TW&gl=tw&x={x}&y={y}&z={z}',
     options: {
-      subdomains: 'abcd', maxZoom: 19,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/attributions">CARTO</a>'
+      subdomains: ['0', '1', '2', '3'], maxZoom: 20,
+      attribution: '© Google'
     }
   },
-  satellite: {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  map: {
+    url: 'https://mt{s}.google.com/vt/lyrs=m&hl=zh-TW&gl=tw&x={x}&y={y}&z={z}',
     options: {
-      maxZoom: 19,
-      attribution: '© Esri · Earthstar Geographics'
+      subdomains: ['0', '1', '2', '3'], maxZoom: 20,
+      attribution: '© Google'
     }
   },
   terrain: {
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    url: 'https://mt{s}.google.com/vt/lyrs=p&hl=zh-TW&gl=tw&x={x}&y={y}&z={z}',
     options: {
-      subdomains: 'abc', maxZoom: 17,
-      attribution: '© <a href="https://opentopomap.org">OpenTopoMap</a> · © OSM'
+      subdomains: ['0', '1', '2', '3'], maxZoom: 20,
+      attribution: '© Google'
     }
   }
 };
@@ -92,7 +92,7 @@ function initMap() {
     attributionControl: false
   }).setView([26.5, 100.5], 7);
 
-  setBaseLayer('map');
+  setBaseLayer('satellite');
 
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
