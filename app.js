@@ -989,24 +989,85 @@ window.app = {
       else if (spotIdx >= 0) day.spots[spotIdx].description = desc;
       saveState();
     } else {
-      el.textContent = '找不到相關說明。可點「編輯」手動輸入。';
+      const q = encodeURIComponent(name);
+      el.innerHTML = `找不到相關說明。可點「編輯」手動輸入，或 <a href="https://zh.wikipedia.org/w/index.php?search=${q}" target="_blank" rel="noopener" style="color:var(--accent-2);">去維基搜索</a>。`;
     }
   }
 };
 
-// --- Wikipedia summary (zh + en fallback) ---
+// --- Wikipedia summary (zh + en, with smart query sanitisation + search fallback) ---
+// Strip parenthetical clarifiers and common Chinese place-type suffixes so that
+// names like 「龍龕碼頭（洱海 S 彎）」 become 「龍龕碼頭」, and
+// 「普達措國家森林公園」 becomes 「普達措」.
+function _waPlaceVariants(name) {
+  const out = new Set();
+  const push = (s) => { if (s && s.trim().length >= 2) out.add(s.trim()); };
+  push(name);
+  // Drop parenthetical content (both full-width and half-width)
+  const noParen = name
+    .replace(/[（(][^）)]*[）)]/g, '')
+    .replace(/·.*$/, '')
+    .trim();
+  push(noParen);
+  // Drop common place-type suffixes
+  const suffixRe = /(酒店·凱悅臻選|國家森林公園|風景名勝區|酒店·凱悅|仁安悅榕莊|國家公園|濕地公園|凱悅臻選|隱逸酒店|國際機場|風景區|觀景台|悅榕莊|高鐵站|火車站|景區|古鎮|古城|三塔|古村|村落|索道|碼頭|濕地|雪山|老街|夜市|機場|公園|體驗|村|寺|庵|湖|峽|山|街)$/;
+  let stripped = noParen;
+  for (let i = 0; i < 3; i++) {
+    const next = stripped.replace(suffixRe, '').trim();
+    if (next === stripped) break;
+    push(next);
+    stripped = next;
+  }
+  // Drop leading regional prefixes (大理 / 麗江 / 昆明 / 迪慶 / 香格里拉 / 瀦沽湖) when name is long
+  if (stripped.length > 4) {
+    const prefRe = /^(迪慶|香格里拉|瀘沽湖|麗江|大理|昆明|喜洲)/;
+    push(stripped.replace(prefRe, ''));
+  }
+  return [...out];
+}
+
+async function _waSummaryByTitle(lang, title) {
+  try {
+    const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (j.type === 'disambiguation') return null;
+    if (j.extract && j.extract.length > 20) return j.extract;
+    return null;
+  } catch (_) { return null; }
+}
+
+async function _waSearchTopTitle(lang, query) {
+  try {
+    const url = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const j = await r.json();
+    const hit = j?.query?.search?.[0];
+    return hit?.title || null;
+  } catch (_) { return null; }
+}
+
 async function fetchWikipediaSummary(name) {
-  const tryFetch = async (lang) => {
-    try {
-      const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}?redirect=true`;
-      const r = await fetch(url);
-      if (!r.ok) return null;
-      const j = await r.json();
-      if (j.extract && j.extract.length > 20) return j.extract;
-      return null;
-    } catch (_) { return null; }
-  };
-  return (await tryFetch('zh')) || (await tryFetch('en'));
+  if (!name) return null;
+  const variants = _waPlaceVariants(name);
+  // Try direct title hits first across all variants in zh, then en
+  for (const lang of ['zh', 'en']) {
+    for (const v of variants) {
+      const s = await _waSummaryByTitle(lang, v);
+      if (s) return s;
+    }
+    // Then try search API and fetch top result's summary
+    for (const v of variants) {
+      const t = await _waSearchTopTitle(lang, v);
+      if (t && t !== v) {
+        const s = await _waSummaryByTitle(lang, t);
+        if (s) return s;
+      }
+    }
+  }
+  return null;
 }
 
 // --- Place search: Google Places (preferred) + Nominatim fallback ---
