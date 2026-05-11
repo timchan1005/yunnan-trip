@@ -186,6 +186,141 @@ input, select, textarea { font-family: inherit; font-size: 16px; /* prevent iOS 
   opacity: 0.85;
 }
 
+/* --- Mobile day-picker trigger (replaces horizontal chip strip) --- */
+.day-picker-trigger {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px 0 12px;
+  border-radius: 19px;
+  border: none;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.12s;
+  max-width: calc(100vw - 28px);
+}
+.day-picker-trigger:active { transform: scale(0.97); }
+.dpt-dot {
+  flex: 0 0 auto;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.7);
+}
+.dpt-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+}
+.dpt-chev {
+  flex: 0 0 auto;
+  opacity: 0.55;
+  margin-left: 2px;
+}
+
+/* --- Day picker popup (mobile bottom-sheet) --- */
+.day-picker-pop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  pointer-events: none;
+}
+.day-picker-pop.open { pointer-events: auto; }
+.dpp-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 17, 21, 0.32);
+  opacity: 0;
+  transition: opacity 0.22s ease-out;
+}
+.day-picker-pop.open .dpp-backdrop { opacity: 1; }
+.dpp-sheet {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background: var(--surface);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 40px rgba(0,0,0,0.18);
+  padding: 8px 0 max(12px, var(--safe-bottom));
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.day-picker-pop.open .dpp-sheet { transform: translateY(0); }
+.dpp-grip {
+  align-self: center;
+  width: 38px; height: 4px;
+  background: var(--ink-3);
+  border-radius: 2px;
+  opacity: 0.4;
+  margin-bottom: 10px;
+}
+.dpp-title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+.dpp-list {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px 0 0;
+}
+.dpp-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.dpp-row:last-child { border-bottom: none; }
+.dpp-row:active { background: rgba(0,0,0,0.04); }
+.dpp-row.active {
+  background: linear-gradient(90deg, rgba(217, 116, 65, 0.10), rgba(217, 116, 65, 0.02));
+}
+.dpp-row.active .dpp-name { color: var(--accent-2); font-weight: 700; }
+.dpp-dot {
+  flex: 0 0 auto;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.8);
+}
+.dpp-name {
+  flex: 1 1 auto;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.dpp-meta {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
 /* FAB */
 .fab {
   position: absolute;
@@ -379,6 +514,33 @@ body.drawer-open .drawer-toggle { display: none; }
 .leaflet-marker-icon.dot-marker {
   background: transparent !important;
   border: none !important;
+}
+
+/* v31: collision-avoidance lift
+   JS sets --pin-shift-y on .leaflet-marker-icon when a spot pin
+   would overlap a nearby hotel/spot. We translate the marker upward
+   and draw a faint dashed tether back to the true anchor so the user
+   still understands the pin's real location. */
+.leaflet-marker-icon.pin-shifted {
+  transform-origin: 50% 100%;
+  /* Stack our lift on top of Leaflet's positioning translate3d via a wrapper.
+     We use translateY on a CSS variable, applied through a filter-free child. */
+}
+.leaflet-marker-icon.pin-shifted > * {
+  transform: translateY(calc(-1 * var(--pin-shift-y, 0px)));
+  transition: transform 220ms cubic-bezier(.22,.61,.36,1);
+}
+.leaflet-marker-icon.pin-shifted > *::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 0;
+  height: var(--pin-shift-y, 0px);
+  border-left: 1.5px dashed rgba(11, 20, 38, 0.42);
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0.75;
 }
 .dot-marker .pin {
   width: 30px; height: 30px;

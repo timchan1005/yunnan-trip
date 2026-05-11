@@ -8,88 +8,109 @@
 
 window.MAP_DATA = {
   overview: {
-    mapImg: 'img/v30_yunnan_overview.webp',
+    mapImg: 'img/v30b_yunnan_overview.webp',
     aspect: 16/9,
     regions: [
-      { id: 'shangrila', name: '香格里拉',   xy: [12, 18], color: '#3d5275' },
-      { id: 'lugu',      name: '瀘沽湖',     xy: [80, 16], color: '#496c8c' },
-      { id: 'lijiang',   name: '麗江',       xy: [50, 28], color: '#5d8c70' },
-      { id: 'dali',      name: '大理',       xy: [40, 72], color: '#b67a3a' },
-      { id: 'kunming',   name: '昆明',       xy: [78, 70], color: '#a8553d' },
+      // Pin xy% are calibrated to v30b_yunnan_overview.webp:
+      // Meili snow peaks top-left, heart-lake top-center-right, Erhai vertical lake mid-left,
+      // Stone Forest + Dianchi bottom-right.
+      { id: 'shangrila', name: '香格里拉',   xy: [18, 12], color: '#3d5275' },
+      { id: 'lugu',      name: '瀘沽湖',     xy: [60, 15], color: '#496c8c' },
+      { id: 'lijiang',   name: '麗江',       xy: [33, 22], color: '#5d8c70' },
+      { id: 'dali',      name: '大理',       xy: [27, 58], color: '#b67a3a' },
+      { id: 'kunming',   name: '昆明',       xy: [72, 70], color: '#a8553d' },
     ],
   },
   regions: {
     kunming: {
       name: '昆明',
       subtitle: '滇池畔嘅春城',
-      mapImg: 'img/v30_region_kunming.webp',
+      mapImg: 'img/v30b_region_kunming.webp',
       aspect: 16/9,
       spots: [
-        { id: 'day2-s1', name: '石林風景區',   xy: [80, 78], hasImg: true, day: 2 },
-        { id: 'day2-s2', name: '撈魚河濕地',   xy: [25, 70], hasImg: true, day: 2 },
-        { id: 'day2-s3', name: '昆明老街',     xy: [60, 30], hasImg: true, day: 2 },
-        { id: 'day1-s2', name: '雙橋夜市',     xy: [55, 36], hasImg: true, day: 1 },
+        // City buildings NW of Dianchi at ~28%,25%; Dianchi center at ~45%,50%;
+        // Wetlands SW at ~18%,72%; Stone Forest karst SE at ~80%,72%
+        { id: 'day2-s1', name: '石林風景區',   xy: [82, 76], hasImg: true, day: 2 },
+        { id: 'day2-s2', name: '撈魚河濕地',   xy: [18, 78], hasImg: true, day: 2 },
+        { id: 'day2-s3', name: '昆明老街',     xy: [25, 26], hasImg: true, day: 2 },
+        { id: 'day1-s2', name: '雙橋夜市',     xy: [38, 22], hasImg: true, day: 1 },
       ],
     },
     dali: {
       name: '大理',
       subtitle: '蒼山洱海 · 風花雪月',
-      mapImg: 'img/v30_region_dali.webp',
+      mapImg: 'img/v30b_region_dali.webp',
       aspect: 16/9,
       spots: [
-        { id: 'day4-s2', name: '周城扎染',     xy: [30, 22], hasImg: true, day: 4 },
-        { id: 'day3-s3', name: '雙廊古鎮',     xy: [72, 22], hasImg: true, day: 3 },
-        { id: 'day4-s1', name: '喜洲古鎮',     xy: [33, 30], hasImg: true, day: 4 },
-        { id: 'day3-s4', name: '小普陀',       xy: [65, 32], hasImg: true, day: 3 },
-        { id: 'day4-s4', name: '崇聖寺三塔',   xy: [40, 50], hasImg: true, day: 4 },
-        { id: 'day3-s2', name: '理想邦',       xy: [38, 60], hasImg: true, day: 3 },
-        { id: 'day4-s3', name: '龍龕碼頭',     xy: [62, 62], hasImg: true, day: 4 },
-        { id: 'day4-s5', name: '大理古城',     xy: [38, 75], hasImg: true, day: 4 },
+        // Erhai lake runs vertical right half; Cangshan range left; Three Pagodas bottom-left foothills.
+        // North end of lake (top): Zhoucheng zha-ran ~58%,15%; Xizhou ~50%,25%
+        // East shore (right): Shuanglang ~80%,18%; Xiaoputuo island ~78%,30%
+        // West foothills: Three Pagodas ~25%,72%; Lixiangbang ~32%,60%
+        // South end (bottom): Dali Old Town ~38%,82%; Longkan dock ~72%,58%
+        { id: 'day4-s2', name: '周城扎染',     xy: [58, 15], hasImg: true, day: 4 },
+        { id: 'day3-s3', name: '雙廊古鎮',     xy: [82, 18], hasImg: true, day: 3 },
+        { id: 'day4-s1', name: '喜洲古鎮',     xy: [48, 26], hasImg: true, day: 4 },
+        { id: 'day3-s4', name: '小普陀',       xy: [78, 32], hasImg: true, day: 3 },
+        { id: 'day4-s4', name: '崇聖寺三塔',   xy: [22, 70], hasImg: true, day: 4 },
+        { id: 'day3-s2', name: '理想邦',       xy: [32, 55], hasImg: true, day: 3 },
+        { id: 'day4-s3', name: '龍龕碼頭',     xy: [72, 56], hasImg: true, day: 4 },
+        { id: 'day4-s5', name: '大理古城',     xy: [38, 82], hasImg: true, day: 4 },
       ],
     },
     lijiang: {
       name: '麗江',
       subtitle: '玉龍雪山 · 古城水鄉',
-      mapImg: 'img/v30_region_lijiang.webp',
+      mapImg: 'img/v30b_region_lijiang.webp',
       aspect: 16/9,
       spots: [
-        { id: 'day6-s1', name: '玉龍雪山',     xy: [38, 22], hasImg: true, day: 6 },
-        { id: 'day6-s2', name: '雲杉坪',       xy: [42, 42], hasImg: true, day: 6 },
-        { id: 'day6-s3', name: '藍月谷',       xy: [52, 55], hasImg: true, day: 6 },
-        { id: 'day6-s4', name: '白沙古鎮',     xy: [48, 78], hasImg: true, day: 6 },
-        { id: 'day5-s3', name: '麗江古城',     xy: [22, 90], hasImg: true, day: 5 },
-        { id: 'day5-s1', name: '蒼山感通索道', xy: [10, 78], hasImg: true, day: 5 },
-        { id: 'day5-s2', name: '寂照庵',       xy: [15, 88], hasImg: true, day: 5 },
+        // Yulong snow peaks top-center ~45%,18%; Yunshanping meadow below ~50%,42%
+        // Blue Moon Valley turquoise river right side flowing down ~70%,55%
+        // Baisha old town middle-low ~50%,72%; Lijiang old town bottom-left ~30%,90%
+        // Cangshan Gantong cable car far-left foothills ~15%,75%; Jizhao An ~22%,82%
+        { id: 'day6-s1', name: '玉龍雪山',     xy: [45, 16], hasImg: true, day: 6 },
+        { id: 'day6-s2', name: '雲杉坪',       xy: [55, 42], hasImg: true, day: 6 },
+        { id: 'day6-s3', name: '藍月谷',       xy: [72, 56], hasImg: true, day: 6 },
+        { id: 'day6-s4', name: '白沙古鎮',     xy: [50, 75], hasImg: true, day: 6 },
+        { id: 'day5-s3', name: '麗江古城',     xy: [25, 88], hasImg: true, day: 5 },
+        { id: 'day5-s1', name: '蒼山感通索道', xy: [12, 75], hasImg: true, day: 5 },
+        { id: 'day5-s2', name: '寂照庵',       xy: [20, 85], hasImg: true, day: 5 },
       ],
     },
     lugu: {
       name: '瀘沽湖',
       subtitle: '摩梭家園 · 走婚橋',
-      mapImg: 'img/v30_region_lugu.webp',
+      mapImg: 'img/v30b_region_lugu.webp',
       aspect: 16/9,
       spots: [
-        { id: 'day7-s1', name: '瀘沽湖觀景台', xy: [20, 55], hasImg: true, day: 7 },
-        { id: 'day7-s2', name: '里格村',       xy: [45, 32], hasImg: true, day: 7 },
-        { id: 'day8-s1', name: '豬槽船晨霧',   xy: [50, 55], hasImg: true, day: 8 },
-        { id: 'day8-s2', name: '草海走婚橋',   xy: [82, 56], hasImg: true, day: 8 },
+        // Lake fills middle; Lige peninsula ~28%,55%; Walking marriage bridge over reeds right ~78%,55%
+        // Viewing platform pavilion bottom-left ~18%,80%; boats on lake ~50%,52%
+        { id: 'day7-s1', name: '瀘沽湖觀景台', xy: [18, 78], hasImg: true, day: 7 },
+        { id: 'day7-s2', name: '里格村',       xy: [28, 52], hasImg: true, day: 7 },
+        { id: 'day8-s1', name: '豬槽船晨霧',   xy: [50, 50], hasImg: true, day: 8 },
+        { id: 'day8-s2', name: '草海走婚橋',   xy: [78, 56], hasImg: true, day: 8 },
       ],
     },
     shangrila: {
       name: '香格里拉',
       subtitle: '梅里日照金山 · 藏地秘境',
-      mapImg: 'img/v30_region_shangrila.webp',
+      mapImg: 'img/v30b_region_shangrila.webp',
       aspect: 16/9,
       spots: [
-        { id: 'day10-s4', name: '霧濃頂觀景台',     xy: [22, 22], hasImg: true, day: 10 },
-        { id: 'day11-s1', name: '飛來寺觀景台',     xy: [18, 32], hasImg: true, day: 11 },
-        { id: 'day10-s3', name: '白馬雪山觀景台',   xy: [42, 28], hasImg: true, day: 10 },
-        { id: 'day11-s2', name: '金沙江第一灣',     xy: [78, 30], hasImg: true, day: 11 },
-        { id: 'day9-s1',  name: '虎跳峽',           xy: [88, 50], hasImg: true, day: 9 },
-        { id: 'day12-s2', name: '納帕海',           xy: [30, 60], hasImg: true, day: 12 },
-        { id: 'day10-s1', name: '松贊林寺',         xy: [30, 72], hasImg: true, day: 10 },
-        { id: 'day9-s2',  name: '獨克宗古城',       xy: [42, 75], hasImg: true, day: 9 },
-        { id: 'day10-s2', name: '大經幡',           xy: [45, 78], hasImg: true, day: 10 },
-        { id: 'day12-s1', name: '普達措國家公園',   xy: [70, 78], hasImg: true, day: 12 },
+        // Meili snow range left ~10-20%; Feilai temple on ridge ~22%,42%
+        // High meadow top ~38%,18%; Baima ridge mid ~50%,38%
+        // First Bend U river top-right ~75%,18%; Tiger Leap canyon right edge ~93%,40%
+        // Napahai grassland bottom-center ~38%,72%; Songzanlin monastery on hill ~60%,55%
+        // Dukezong old town with prayer wheel ~75%,72%; Pudacuo bottom-right corner ~92%,82%
+        { id: 'day10-s4', name: '霧濃頂觀景台',     xy: [40, 16], hasImg: true, day: 10 },
+        { id: 'day11-s1', name: '飛來寺觀景台',     xy: [22, 42], hasImg: true, day: 11 },
+        { id: 'day10-s3', name: '白馬雪山觀景台',   xy: [50, 40], hasImg: true, day: 10 },
+        { id: 'day11-s2', name: '金沙江第一灣',     xy: [75, 18], hasImg: true, day: 11 },
+        { id: 'day9-s1',  name: '虎跳峽',           xy: [92, 42], hasImg: true, day: 9 },
+        { id: 'day12-s2', name: '納帕海',           xy: [38, 75], hasImg: true, day: 12 },
+        { id: 'day10-s1', name: '松贊林寺',         xy: [60, 52], hasImg: true, day: 10 },
+        { id: 'day9-s2',  name: '獨克宗古城',       xy: [75, 70], hasImg: true, day: 9 },
+        { id: 'day10-s2', name: '大經幡',           xy: [78, 76], hasImg: true, day: 10 },
+        { id: 'day12-s1', name: '普達措國家公園',   xy: [92, 80], hasImg: true, day: 12 },
       ],
     },
   },

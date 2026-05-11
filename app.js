@@ -107,6 +107,7 @@ function initMap() {
   L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
 
   layerGroup = L.layerGroup().addTo(map);
+  installCollisionListeners();
   // Cluster group for the overview-mode spot markers (keeps the all-days view tidy)
   markerCluster = (typeof L.markerClusterGroup === 'function')
     ? L.markerClusterGroup({
@@ -539,6 +540,79 @@ function renderMap() {
     const bounds = L.latLngBounds(points);
     map.fitBounds(bounds, { padding: [80, 80], maxZoom: 13 });
   }
+
+  // v31: Auto-stagger overlapping pins so hotel D-pin and spot bubble don't collide
+  scheduleCollisionPass();
+}
+
+// --- v31: Pin collision avoidance ---
+// After Leaflet renders markers at their lat/lng anchors, compute pixel positions
+// of each visible marker. If two markers' anchor points are within COLLIDE_PX,
+// stagger them upward (or to one side) using CSS transform on the marker container.
+let _collisionTimer = null;
+function scheduleCollisionPass() {
+  if (!map) return;
+  if (_collisionTimer) clearTimeout(_collisionTimer);
+  _collisionTimer = setTimeout(applyMarkerCollisionAvoidance, 120);
+}
+function applyMarkerCollisionAvoidance() {
+  if (!map) return;
+  const COLLIDE_PX = 38;        // anchors closer than this collide
+  const STAGGER_PX = 34;        // vertical lift per stagger step
+  const MAX_STEPS = 4;
+
+  const markers = [];
+  layerGroup.eachLayer((lyr) => {
+    if (!(lyr instanceof L.Marker)) return;
+    const el = lyr.getElement();
+    if (!el) return;
+    // Reset any previous offset first so re-renders don't accumulate
+    el.style.removeProperty('--pin-shift-y');
+    el.style.removeProperty('--pin-shift-x');
+    el.classList.remove('pin-shifted');
+    const pt = map.latLngToContainerPoint(lyr.getLatLng());
+    const isHotel = el.classList.contains('is-hotel');
+    markers.push({ lyr, el, pt, isHotel });
+  });
+  if (markers.length < 2) return;
+
+  // Sort: hotels stay put (priority 0), spots get shifted (priority 1+)
+  markers.sort((a, b) => (a.isHotel ? 0 : 1) - (b.isHotel ? 0 : 1));
+
+  // For each pair, if too close, shift the lower-priority one up in steps
+  // until separated or MAX_STEPS reached.
+  for (let i = 1; i < markers.length; i++) {
+    const a = markers[i];
+    let step = 0;
+    let safe = false;
+    while (step <= MAX_STEPS && !safe) {
+      const yShift = step * STAGGER_PX;
+      const ay = a.pt.y - yShift;
+      safe = true;
+      for (let j = 0; j < i; j++) {
+        const b = markers[j];
+        const byShift = parseFloat(b.el.style.getPropertyValue('--pin-shift-y') || '0');
+        const by = b.pt.y - byShift;
+        const dx = a.pt.x - b.pt.x;
+        const dy = ay - by;
+        if (Math.hypot(dx, dy) < COLLIDE_PX) { safe = false; break; }
+      }
+      if (safe) {
+        if (step > 0) {
+          a.el.style.setProperty('--pin-shift-y', `${yShift}px`);
+          a.el.classList.add('pin-shifted');
+        }
+        break;
+      }
+      step++;
+    }
+  }
+}
+// Re-run collision pass on map move/zoom
+function installCollisionListeners() {
+  if (!map || map._collisionInstalled) return;
+  map._collisionInstalled = true;
+  map.on('moveend zoomend', scheduleCollisionPass);
 }
 
 // --- Overview: all days, all locations ---
@@ -600,6 +674,7 @@ function renderOverview() {
     const bounds = L.latLngBounds(allPoints);
     map.fitBounds(bounds, { padding: [60, 60], maxZoom: 9 });
   }
+  scheduleCollisionPass();
 }
 
 function createMarker(loc, opts = {}) {
@@ -651,11 +726,39 @@ function buildPopup(loc, ctx) {
 }
 
 // --- Day rail ---
+// Mobile (≤ 720px): renders a single "Day picker" button that opens a popup
+//   listing all 13 days. Eliminates horizontal-scroll chip clipping.
+// Desktop (> 720px): renders wrap-style chip rail as before.
 function renderDayRail() {
   const rail = document.getElementById('day-rail');
+  if (!rail) return;
   rail.innerHTML = '';
 
-  // "All Days" chip
+  const isMobile = window.matchMedia('(max-width: 720px)').matches;
+
+  if (isMobile) {
+    // --- Mobile: single dropdown trigger ---
+    const pickerBtn = document.createElement('button');
+    pickerBtn.className = 'day-picker-trigger';
+    pickerBtn.setAttribute('aria-haspopup', 'listbox');
+    const activeLabel = (activeDayIdx === -1)
+      ? '全部行程'
+      : `Day ${state.days[activeDayIdx].day} · ${state.days[activeDayIdx].city}`;
+    const activeColor = (activeDayIdx === -1) ? 'var(--accent-2)' : state.days[activeDayIdx].color;
+    pickerBtn.innerHTML = `
+      <span class="dpt-dot" style="background:${activeColor}"></span>
+      <span class="dpt-label">${activeLabel}</span>
+      <svg class="dpt-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9 L12 15 L18 9"/></svg>
+    `;
+    pickerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDayPicker();
+    });
+    rail.appendChild(pickerBtn);
+    return;
+  }
+
+  // --- Desktop: wrap-style chip rail ---
   const allBtn = document.createElement('button');
   allBtn.className = 'day-chip day-chip-all' + (activeDayIdx === -1 ? ' active' : '');
   allBtn.innerHTML = `
@@ -686,6 +789,73 @@ function renderDayRail() {
     rail.appendChild(btn);
   });
 }
+
+// --- Day picker popup (mobile) ---
+function openDayPicker() {
+  let pop = document.getElementById('day-picker-pop');
+  if (pop) { pop.remove(); }
+  pop = document.createElement('div');
+  pop.id = 'day-picker-pop';
+  pop.className = 'day-picker-pop';
+  pop.innerHTML = `
+    <div class="dpp-backdrop"></div>
+    <div class="dpp-sheet" role="listbox" aria-label="選擇日子">
+      <div class="dpp-grip"></div>
+      <div class="dpp-title">選擇日子</div>
+      <div class="dpp-list"></div>
+    </div>
+  `;
+  document.body.appendChild(pop);
+  const list = pop.querySelector('.dpp-list');
+
+  // "All" row
+  const allRow = document.createElement('button');
+  allRow.className = 'dpp-row' + (activeDayIdx === -1 ? ' active' : '');
+  allRow.innerHTML = `
+    <span class="dpp-dot" style="background:var(--accent-2)"></span>
+    <span class="dpp-name">全部行程</span>
+    <span class="dpp-meta">13 日</span>
+  `;
+  allRow.addEventListener('click', () => {
+    activeDayIdx = -1;
+    closeDayPicker();
+    renderAll();
+    document.getElementById('drawer-body').scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  list.appendChild(allRow);
+
+  state.days.forEach((d, idx) => {
+    const row = document.createElement('button');
+    row.className = 'dpp-row' + (idx === activeDayIdx ? ' active' : '');
+    row.innerHTML = `
+      <span class="dpp-dot" style="background:${d.color}"></span>
+      <span class="dpp-name">Day ${d.day} · ${d.city}</span>
+      <span class="dpp-meta">${d.date}</span>
+    `;
+    row.addEventListener('click', () => {
+      activeDayIdx = idx;
+      closeDayPicker();
+      renderAll();
+      const card = document.getElementById(`day-card-${idx}`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    list.appendChild(row);
+  });
+
+  pop.querySelector('.dpp-backdrop').addEventListener('click', closeDayPicker);
+  // open animation
+  requestAnimationFrame(() => pop.classList.add('open'));
+}
+function closeDayPicker() {
+  const pop = document.getElementById('day-picker-pop');
+  if (!pop) return;
+  pop.classList.remove('open');
+  setTimeout(() => pop.remove(), 260);
+}
+// Re-render rail when crossing the mobile/desktop breakpoint
+window.matchMedia('(max-width: 720px)').addEventListener('change', () => {
+  try { renderDayRail(); } catch(e) {}
+});
 
 // Haversine distance in km between two {lat, lng} points
 function _haversineKm(a, b) {
