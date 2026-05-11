@@ -137,19 +137,180 @@
   }
 
   // ---------- Pin builder (ink-map version) ----------
+  // v32: anchor dot is FIXED at xy (precision), label floats and is auto-placed
+  // by smartPlaceLabels() to avoid overlap. Connector line drawn from dot to label.
   function buildInkPin(name, opts) {
     const isRegion = opts && opts.kind === 'region';
     const drillable = opts && opts.drillable;
-    const el = document.createElement('button');
-    el.type = 'button';
+    // Outer wrap is positioned at the xy anchor (the true location).
+    const el = document.createElement('div');
     el.className = `ink-pin ${isRegion ? 'ink-pin-region' : 'ink-pin-spot'} ${drillable ? 'ink-pin-drill' : ''}`;
     el.innerHTML = `
-      <span class="ink-pin-stem"></span>
-      <span class="ink-pin-label">
-        <span class="ink-pin-dot"></span>
+      <span class="ink-pin-anchor" aria-hidden="true"></span>
+      <svg class="ink-pin-leader" aria-hidden="true" width="0" height="0"><line x1="0" y1="0" x2="0" y2="0"/></svg>
+      <button type="button" class="ink-pin-label">
         <span class="ink-pin-name">${escapeHTML(name)}</span>
-      </span>`;
+      </button>`;
     return el;
+  }
+
+  // Smart-place all .ink-pin-label children inside `pinsContainer` (relative).
+  // Strategy:
+  //  1. Each pin's anchor is fixed at xy. The label is positioned in one of 8
+  //     candidate offsets relative to the anchor.
+  //  2. We pick the candidate with lowest overlap-score against (a) other labels
+  //     already placed, (b) the stage edges, (c) every anchor dot.
+  //  3. A thin SVG leader line is drawn from the anchor to the nearest edge of
+  //     the chosen label so the connection stays readable.
+  function smartPlaceLabels(stage) {
+    if (!stage) return;
+    const stageRect = stage.getBoundingClientRect();
+    if (stageRect.width < 10 || stageRect.height < 10) return;
+
+    const pins = Array.from(stage.querySelectorAll('.ink-pin'));
+    if (!pins.length) return;
+
+    const isMobile = stageRect.width < 560;
+    // Distance from anchor centre to nearest label edge.
+    const RADIUS = isMobile ? 28 : 38;
+    const DIAG_RADIUS = isMobile ? 22 : 30; // diagonal uses smaller offset
+
+    // 8 candidate placements (label centre offset from anchor in px).
+    // Order matters — earlier ones are preferred when ties happen.
+    const CANDIDATES = [
+      { id: 'N',  dx:  0,  dy: -RADIUS, anchorEdge: 'bottom' },
+      { id: 'S',  dx:  0,  dy:  RADIUS, anchorEdge: 'top' },
+      { id: 'E',  dx:  RADIUS,  dy:  0, anchorEdge: 'left' },
+      { id: 'W',  dx: -RADIUS,  dy:  0, anchorEdge: 'right' },
+      { id: 'NE', dx:  DIAG_RADIUS, dy: -DIAG_RADIUS, anchorEdge: 'bottom-left' },
+      { id: 'NW', dx: -DIAG_RADIUS, dy: -DIAG_RADIUS, anchorEdge: 'bottom-right' },
+      { id: 'SE', dx:  DIAG_RADIUS, dy:  DIAG_RADIUS, anchorEdge: 'top-left' },
+      { id: 'SW', dx: -DIAG_RADIUS, dy:  DIAG_RADIUS, anchorEdge: 'top-right' },
+    ];
+
+    // First pass: measure each label's natural size, compute anchor (px) inside stage.
+    const items = pins.map((pin) => {
+      const label = pin.querySelector('.ink-pin-label');
+      // Reset label to a neutral position before measuring so it doesn't inherit a previous run's transform.
+      label.style.transform = '';
+      label.style.left = '0px';
+      label.style.top = '0px';
+      const lblRect = label.getBoundingClientRect();
+      const w = lblRect.width;
+      const h = lblRect.height;
+      // The pin element itself is absolutely positioned via left/top % at the xy anchor;
+      // its centre at translate(-50%,-50%) IS the anchor.
+      const pinRect = pin.getBoundingClientRect();
+      const ax = pinRect.left - stageRect.left + pinRect.width / 2;
+      const ay = pinRect.top - stageRect.top + pinRect.height / 2;
+      return { pin, label, w, h, ax, ay, placed: null };
+    });
+
+    // Anchor rectangles act as fixed obstacles (so labels never overlap a dot).
+    const ANCHOR_R = isMobile ? 8 : 10;
+    const anchorRects = items.map((it) => ({
+      l: it.ax - ANCHOR_R, t: it.ay - ANCHOR_R,
+      r: it.ax + ANCHOR_R, b: it.ay + ANCHOR_R,
+    }));
+
+    const placedRects = []; // labels already placed
+
+    function overlapArea(a, b) {
+      const ix = Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l));
+      const iy = Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
+      return ix * iy;
+    }
+
+    function offstagePenalty(r) {
+      let p = 0;
+      if (r.l < 4) p += (4 - r.l) * 200;
+      if (r.t < 4) p += (4 - r.t) * 200;
+      if (r.r > stageRect.width  - 4) p += (r.r - (stageRect.width  - 4)) * 200;
+      if (r.b > stageRect.height - 4) p += (r.b - (stageRect.height - 4)) * 200;
+      return p;
+    }
+
+    // Order: place region pins first (they're bigger / more important), then by
+    // distance-to-edge so labels near edges get the easy choices first.
+    items.sort((a, b) => {
+      const aRegion = a.pin.classList.contains('ink-pin-region') ? 0 : 1;
+      const bRegion = b.pin.classList.contains('ink-pin-region') ? 0 : 1;
+      if (aRegion !== bRegion) return aRegion - bRegion;
+      const aEdge = Math.min(a.ax, a.ay, stageRect.width - a.ax, stageRect.height - a.ay);
+      const bEdge = Math.min(b.ax, b.ay, stageRect.width - b.ax, stageRect.height - b.ay);
+      return aEdge - bEdge;
+    });
+
+    items.forEach((it) => {
+      let best = null;
+      let bestScore = Infinity;
+      CANDIDATES.forEach((cand) => {
+        // Label rect centered on (ax + dx, ay + dy)
+        const cx = it.ax + cand.dx;
+        const cy = it.ay + cand.dy;
+        const rect = { l: cx - it.w / 2, t: cy - it.h / 2, r: cx + it.w / 2, b: cy + it.h / 2 };
+        let score = 0;
+        // Penalty against other labels
+        placedRects.forEach((pr) => { score += overlapArea(rect, pr) * 3; });
+        // Penalty against anchor dots
+        anchorRects.forEach((ar) => { score += overlapArea(rect, ar) * 5; });
+        // Penalty for going off-stage
+        score += offstagePenalty(rect);
+        if (score < bestScore) { bestScore = score; best = { cand, rect, cx, cy }; }
+      });
+      it.placed = best;
+      placedRects.push(best.rect);
+      // Apply position: label is absolutely positioned inside .ink-pin, anchor stays at (0,0).
+      it.label.style.left = best.cand.dx + 'px';
+      it.label.style.top  = best.cand.dy + 'px';
+      it.label.style.transform = 'translate(-50%, -50%)';
+      // Draw leader line from anchor (0,0 in pin-local coords) to nearest edge of label.
+      const svg = it.pin.querySelector('.ink-pin-leader');
+      const line = svg.querySelector('line');
+      // Compute the entry point on the label rect closest to the anchor.
+      // We work in pin-local coords (anchor at 0,0).
+      const halfW = it.w / 2, halfH = it.h / 2;
+      const lx = best.cand.dx, ly = best.cand.dy;
+      // Where does the line from (0,0) to (lx,ly) intersect the label's edge?
+      let tx = lx, ty = ly;
+      if (lx !== 0 || ly !== 0) {
+        const tX = halfW / Math.abs(lx || 0.0001);
+        const tY = halfH / Math.abs(ly || 0.0001);
+        const t = Math.min(tX, tY);
+        tx = lx - Math.sign(lx) * Math.abs(lx) * t;
+        ty = ly - Math.sign(ly) * Math.abs(ly) * t;
+      }
+      // Configure svg to span the bounding box [min,max].
+      const minX = Math.min(0, tx) - 2;
+      const minY = Math.min(0, ty) - 2;
+      const maxX = Math.max(0, tx) + 2;
+      const maxY = Math.max(0, ty) + 2;
+      const sw = Math.max(1, maxX - minX);
+      const sh = Math.max(1, maxY - minY);
+      svg.setAttribute('width', sw);
+      svg.setAttribute('height', sh);
+      svg.style.left = minX + 'px';
+      svg.style.top = minY + 'px';
+      line.setAttribute('x1', String(-minX));
+      line.setAttribute('y1', String(-minY));
+      line.setAttribute('x2', String(tx - minX));
+      line.setAttribute('y2', String(ty - minY));
+    });
+  }
+
+  // Debounced placement — call after pins are added AND after image has loaded
+  // (so the stage has its real size).
+  function schedulePlacement(stage) {
+    if (!stage) return;
+    const img = stage.querySelector('.inkmap-img');
+    const run = () => requestAnimationFrame(() => smartPlaceLabels(stage));
+    if (img && !img.complete) {
+      img.addEventListener('load', run, { once: true });
+      // Also run immediately as a fallback (image may have intrinsic ratio already).
+      run();
+    } else {
+      run();
+    }
   }
 
   // ---------- Level 0: Overview ----------
@@ -166,9 +327,11 @@
       const p = buildInkPin(reg.name, { kind: 'region', drillable: true });
       p.style.left = reg.xy[0] + '%';
       p.style.top  = reg.xy[1] + '%';
-      p.addEventListener('click', () => { location.hash = `#/map/${reg.id}`; });
+      const onClick = () => { location.hash = `#/map/${reg.id}`; };
+      p.querySelector('.ink-pin-label').addEventListener('click', onClick);
       pins.appendChild(p);
     });
+    schedulePlacement(stage);
     $('crumbMeta').textContent = '5 個區 · 13 日';
   }
 
@@ -191,9 +354,11 @@
       const p = buildInkPin(sp.name, { kind: 'spot', drillable: !!sp.hasImg });
       p.style.left = sp.xy[0] + '%';
       p.style.top  = sp.xy[1] + '%';
-      p.addEventListener('click', () => { location.hash = `#/map/${regionId}/${sp.id}`; });
+      const onClick = () => { location.hash = `#/map/${regionId}/${sp.id}`; };
+      p.querySelector('.ink-pin-label').addEventListener('click', onClick);
       pins.appendChild(p);
     });
+    schedulePlacement(stage);
     $('crumbMeta').textContent = region.spots.length + ' 個景點';
   }
 
@@ -395,7 +560,17 @@
     wireCrumb();
     handleRoute();
     window.addEventListener('hashchange', handleRoute);
-    // v30: ink-map is purely image + abs-positioned pins — no resize handler needed.
+    // v32: smart-place labels needs re-run on resize / orientation change.
+    let resizeT;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(() => {
+        ['overviewStage', 'regionStage'].forEach((id) => {
+          const s = document.getElementById(id);
+          if (s && s.offsetParent !== null) smartPlaceLabels(s);
+        });
+      }, 120);
+    });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

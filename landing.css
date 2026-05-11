@@ -1408,131 +1408,126 @@ body.on-landing,
   z-index: 5;
 }
 
-/* v30 ink pins — dot anchored at xy, label floats above */
+/* v32 ink pins — anchor dot FIXED at xy (precision), label floats and is
+   auto-placed by JS to avoid overlap. SVG leader line connects them. */
 .ink-pin {
   position: absolute;
   left: 0; top: 0;
-  transform: translate(-50%, -100%);
+  /* Outer wrap CENTRES on (xy) so the dot is at the exact point. */
+  transform: translate(-50%, -50%);
+  width: 0;       /* size comes from children */
+  height: 0;
+  pointer-events: none; /* only the label & dot are clickable */
+  z-index: 3;
+  font: inherit;
+  color: inherit;
+  transition: transform 0.22s var(--easing);
+}
+.ink-pin-anchor {
+  /* The true xy dot. Always visible, always precise. */
+  position: absolute;
+  left: 0; top: 0;
+  transform: translate(-50%, -50%);
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--sunset-deep);
+  box-shadow: 0 0 0 3px rgba(255, 250, 244, 0.92), 0 2px 5px rgba(28,24,20,0.30);
+  pointer-events: auto;
+  z-index: 2;
+}
+.ink-pin-leader {
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 1;
+}
+.ink-pin-leader line {
+  stroke: rgba(60, 42, 28, 0.55);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-dasharray: 3 3;
+}
+.ink-pin-label {
+  /* Absolute inside .ink-pin; left/top set by JS, transform centres it. */
+  position: absolute;
+  left: 0; top: 0;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 0;
-  background: transparent;
-  border: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 250, 244, 0.96);
+  border: 1px solid rgba(120, 108, 90, 0.30);
+  box-shadow: 0 6px 14px rgba(28, 24, 20, 0.18);
+  white-space: nowrap;
   cursor: pointer;
   pointer-events: auto;
   font: inherit;
   color: inherit;
-  white-space: nowrap;
-  transition: transform 0.22s var(--easing);
-}
-.ink-pin-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 250, 244, 0.94);
-  border: 1px solid rgba(120, 108, 90, 0.28);
-  box-shadow: 0 6px 14px rgba(28, 24, 20, 0.18);
-  white-space: nowrap;
+  z-index: 3;
   transition: background 0.2s var(--easing), border-color 0.2s var(--easing), box-shadow 0.2s var(--easing);
-}
-.ink-pin-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--ink-2);
-  flex-shrink: 0;
 }
 .ink-pin-name {
   font-family: var(--font-serif);
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  letter-spacing: 0.05em;
   color: var(--ink);
 }
-.ink-pin-stem {
-  /* short ink stem from label down to the actual location dot */
-  width: 1.5px;
-  height: 14px;
-  background: linear-gradient(180deg, rgba(60,42,28,0.85), rgba(60,42,28,0.15));
-  border-radius: 1px;
-  margin-bottom: -3px;
-  order: 2; /* below the label */
-}
-.ink-pin-label { order: 1; }
-.ink-pin::after {
-  /* anchor dot at exact xy */
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -4px;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  background: var(--sunset-deep);
-  box-shadow: 0 0 0 3px rgba(255, 250, 244, 0.85), 0 2px 5px rgba(28,24,20,0.30);
-}
-.ink-pin-region {
-  z-index: 4;
+
+/* Region pins — bigger and warmer */
+.ink-pin-region { z-index: 4; }
+.ink-pin-region .ink-pin-anchor {
+  width: 12px; height: 12px;
+  background: var(--sunset);
 }
 .ink-pin-region .ink-pin-label {
-  padding: 7px 18px 7px 12px;
+  padding: 6px 16px;
   background: rgba(255, 250, 244, 0.97);
   border-color: rgba(184, 90, 42, 0.5);
   box-shadow: 0 8px 18px rgba(28,24,20,0.22);
 }
 .ink-pin-region .ink-pin-name {
-  font-size: 17px;
-  letter-spacing: 0.10em;
+  font-size: 16px;
+  letter-spacing: 0.08em;
 }
-.ink-pin-region .ink-pin-dot {
-  width: 10px; height: 10px;
-  background: var(--sunset);
-}
-.ink-pin-region::after {
-  width: 10px; height: 10px;
-  background: var(--sunset);
-}
-.ink-pin-region .ink-pin-stem {
-  height: 20px;
-  background: linear-gradient(180deg, rgba(184,90,42,0.9), rgba(184,90,42,0.2));
+.ink-pin-region .ink-pin-leader line {
+  stroke: rgba(184, 90, 42, 0.55);
+  stroke-width: 1.4;
 }
 .ink-pin-drill .ink-pin-name {
   background-image: linear-gradient(transparent 86%, rgba(184,90,42,0.55) 86%);
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
-.ink-pin:hover {
-  transform: translate(-50%, -100%) translateY(-3px) scale(1.04);
-  z-index: 10;
+.ink-pin:hover .ink-pin-anchor {
+  transform: translate(-50%, -50%) scale(1.15);
 }
-.ink-pin:hover .ink-pin-label {
+.ink-pin-label:hover {
   background: var(--paper);
   border-color: var(--sunset);
   box-shadow: 0 12px 24px rgba(184, 90, 42, 0.28);
+  transform: translate(-50%, -50%) scale(1.04);
 }
-.ink-pin:focus-visible .ink-pin-label {
+.ink-pin-label:focus-visible {
   outline: 2px solid var(--sunset);
   outline-offset: 2px;
 }
 
 @media (max-width: 900px) {
   .map-canvas-ink { border-radius: 16px; }
-  .ink-pin-label { padding: 5px 11px 5px 8px; gap: 6px; }
-  .ink-pin-name { font-size: 12px; letter-spacing: 0.04em; }
-  .ink-pin-region .ink-pin-name { font-size: 14px; letter-spacing: 0.06em; }
-  .ink-pin-region .ink-pin-label { padding: 6px 14px 6px 10px; }
-  .ink-pin-stem { height: 10px; }
-  .ink-pin-region .ink-pin-stem { height: 14px; }
+  .ink-pin-label { padding: 4px 10px; }
+  .ink-pin-name { font-size: 11.5px; letter-spacing: 0.04em; }
+  .ink-pin-region .ink-pin-name { font-size: 13.5px; letter-spacing: 0.06em; }
+  .ink-pin-region .ink-pin-label { padding: 5px 13px; }
+  .ink-pin-anchor { width: 8px; height: 8px; }
+  .ink-pin-region .ink-pin-anchor { width: 10px; height: 10px; }
 }
 @media (max-width: 560px) {
   .map-canvas-ink { border-radius: 14px; }
-  .ink-pin-label { padding: 4px 9px 4px 7px; gap: 5px; }
-  .ink-pin-name { font-size: 11px; }
-  .ink-pin-region .ink-pin-name { font-size: 12.5px; }
-  .ink-pin::after { width: 6px; height: 6px; }
-  .ink-pin-region::after { width: 8px; height: 8px; }
+  .ink-pin-label { padding: 3px 8px; border-width: 0.8px; }
+  .ink-pin-name { font-size: 10.5px; }
+  .ink-pin-region .ink-pin-name { font-size: 12px; }
+  .ink-pin-anchor { width: 7px; height: 7px; box-shadow: 0 0 0 2.5px rgba(255, 250, 244, 0.92), 0 2px 4px rgba(28,24,20,0.30); }
+  .ink-pin-region .ink-pin-anchor { width: 9px; height: 9px; }
 }
 
