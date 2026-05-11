@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=29">
+<link rel="stylesheet" href="style.css?v=34">
 </head>
 <body>
 
@@ -28,13 +28,22 @@
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="index.html" title="返回序章" style="text-decoration:none;color:inherit;">
-        <svg class="brand-mark" width="28" height="28" viewBox="0 0 32 32" fill="none" aria-label="logo">
-          <path d="M4 24 L10 14 L16 20 L22 8 L28 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="22" cy="8" r="2.5" fill="currentColor"/>
-        </svg>
+        <span class="brand-mark" aria-label="logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <!-- moon / sun disc -->
+            <circle cx="22" cy="9" r="3" fill="currentColor" opacity="0.95"/>
+            <!-- back peak (faded) -->
+            <path d="M3 23 L9 13 L15 19 L20 13 L29 23 Z" fill="currentColor" opacity="0.35"/>
+            <!-- front peak (solid) -->
+            <path d="M5 26 L11 16 L17 22 L23 14 L29 26 Z" fill="currentColor" opacity="0.95"/>
+            <!-- cloud wisps -->
+            <path d="M6 21 q3 -1.5 6 0 q3 -1.5 6 0" stroke="currentColor" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.55"/>
+          </svg>
+          <span class="brand-mark-ring" aria-hidden="true"></span>
+        </span>
         <div class="brand-text">
           <div class="brand-title">雲南之旅</div>
-          <div class="brand-sub">2026/10/10 – 22</div>
+          <div class="brand-sub">2026 · 10/10 – 10/22</div>
         </div>
       </a>
       <nav class="map-quick-nav" aria-label="切換頁面">
@@ -433,7 +442,7 @@
 <script src="data.js?v=29"></script>
 <script src="s2t.js?v=29"></script>
 <script src="sync.js?v=29"></script>
-<script src="app.js?v=29"></script>
+<script src="app.js?v=34"></script>
 
 </body>
 </html>

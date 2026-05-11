@@ -140,7 +140,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; /* prevent iOS 
     scroll-behavior: smooth;
     overscroll-behavior-x: contain;   /* don't bounce the page when reaching edge */
     touch-action: pan-x;              /* tell iOS this is a horizontal scroll surface */
-    padding-bottom: 4px;              /* breathing room for active scale */
+    padding: 0 0 4px 0;               /* drop horizontal padding — wrap already inset; align flush-left */
+    justify-content: flex-start;
   }
   .day-rail::-webkit-scrollbar { display: none; }
   /* Make the fade overlay stop short of the right edge so last chip is reachable */
@@ -1686,6 +1687,49 @@ body.view-budget .fab {
   .day-chip.active { background: var(--ink); color: #0f1115; }
   .day-chip-all.active { background: var(--accent-2); color: white; }
 
+  /* Brand title — swap gradient for warm light tones */
+  .brand-title {
+    background: linear-gradient(180deg, #f5e9d8 0%, #f0a366 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  .brand-mark {
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.18) inset,
+      0 -1px 0 rgba(0,0,0,0.30) inset,
+      0 3px 12px rgba(217,116,65,0.45),
+      0 6px 24px rgba(217,116,65,0.22);
+  }
+  .brand-mark-ring {
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset, 0 0 0 1px rgba(0,0,0,0.30);
+  }
+  .brand-sub::before {
+    background: rgba(240, 163, 102, 0.16);
+    border-color: rgba(240, 163, 102, 0.30);
+    color: #f0a366;
+  }
+
+  /* Mobile day-picker trigger — invert white background to dark */
+  .day-picker-trigger {
+    background: rgba(28, 32, 42, 0.92);
+    color: var(--ink);
+    box-shadow:
+      0 2px 10px rgba(0,0,0,0.45),
+      0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .day-picker-trigger:hover { background: rgba(40, 46, 58, 0.94); }
+  .dpt-dot { box-shadow: 0 0 0 2px rgba(255,255,255,0.18); }
+  .dpt-chev { opacity: 0.7; }
+
+  /* Day picker popup rows — soften divider */
+  .dpp-row { border-bottom-color: rgba(255,255,255,0.06); }
+  .dpp-row:active { background: rgba(255,255,255,0.06); }
+  .dpp-row.active {
+    background: linear-gradient(90deg, rgba(79, 124, 186, 0.16), rgba(79, 124, 186, 0.02));
+  }
+  .dpp-row.active .dpp-name { color: #8fb4ee; }
+  .dpp-dot { box-shadow: 0 0 0 2px rgba(255,255,255,0.18); }
+
   .layer-toggle {
     background: rgba(36, 40, 50, 0.92);
   }
@@ -1880,39 +1924,85 @@ body.view-budget .fab {
   padding: 0 18px;
 }
 .brand-mark {
-  /* Refined: sunset gradient applied via filter on an SVG stroke is tricky — use a wrapper bg */
-  width: 32px; height: 32px;
-  border-radius: 9px;
+  /* Refined logomark: gradient squircle + crisp inner stroke + soft outer glow */
+  position: relative;
+  width: 36px; height: 36px;
+  border-radius: 11px;
   background: var(--gradient-sunset);
   display: flex; align-items: center; justify-content: center;
-  color: white;
-  box-shadow: 0 2px 8px rgba(217,116,65,0.35);
+  color: #fffaf3;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.32) inset,
+    0 -1px 0 rgba(0,0,0,0.10) inset,
+    0 3px 10px rgba(217,116,65,0.40),
+    0 6px 22px rgba(217,116,65,0.18);
   flex-shrink: 0;
+  isolation: isolate;
+  overflow: hidden;
 }
-.brand-mark svg { width: 20px; height: 20px; color: white; }
-.brand-mark svg path { stroke: currentColor; }
-.brand-mark svg circle { fill: currentColor; }
+.brand-mark::before {
+  /* subtle paper-grain inner highlight */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.32), transparent 55%);
+  pointer-events: none;
+}
+.brand-mark svg {
+  width: 22px; height: 22px;
+  color: #fffaf3;
+  position: relative; z-index: 1;
+  filter: drop-shadow(0 1px 1px rgba(140, 60, 20, 0.35));
+}
+.brand-mark-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.25) inset, 0 0 0 1px rgba(0,0,0,0.06);
+}
+.brand:hover .brand-mark { transform: translateY(-1px); }
+.brand-mark { transition: transform 0.18s ease-out; }
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+  gap: 3px;
+  min-width: 0;
+}
 .brand-title {
   font-family: var(--font-serif);
   font-weight: 700;
-  font-size: 19px;
-  letter-spacing: 0.04em;
-  background: linear-gradient(180deg, #2a1d12 0%, #1a1a1f 100%);
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, #1a1a1f 0%, #3a2918 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  text-shadow: none;
 }
 .brand-sub {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--ink-3);
-  margin-top: 1px;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.10em;
   font-feature-settings: "tnum";
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 .brand-sub::before {
-  content: '13 天 · ';
-  color: var(--yn-sunset);
+  content: '13 天';
+  font-family: var(--font-serif);
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--yn-sunset);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(217, 116, 65, 0.12);
+  border: 1px solid rgba(217, 116, 65, 0.22);
 }
 
 /* Segmented view toggle */
@@ -2844,9 +2934,10 @@ body.view-budget .fab {
 /* ============ v29: slim topbar on mobile ============ */
 @media (max-width: 720px) {
   .topbar-inner { gap: 6px; padding: 0 10px; padding-left: max(10px, var(--safe-left)); padding-right: max(10px, var(--safe-right)); }
-  .brand { gap: 7px; }
-  .brand-mark { width: 24px; height: 24px; }
-  .brand-title { font-size: 15px; letter-spacing: 0.01em; }
+  .brand { gap: 8px; }
+  .brand-mark { width: 30px; height: 30px; border-radius: 9px; }
+  .brand-mark svg { width: 18px; height: 18px; }
+  .brand-title { font-size: 16px; letter-spacing: 0.04em; }
   .brand-sub { display: none; } /* save vertical/horizontal space */
   .map-quick-nav { margin-left: 4px; }
   /* Force view-tabs (地圖/預算) into icon-only mode */
