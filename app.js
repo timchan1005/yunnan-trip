@@ -1382,10 +1382,53 @@ function renderSearchResults(items) {
 }
 
 // --- Wire up ---
+// Handle ?focus=<id> query — used when arriving from the landing page's hand-drawn map.
+function _handleFocusParam() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const focus = params.get('focus');
+    if (!focus) return;
+    // focus can be 'dayN' (whole day) or 'dayN-sM' / 'dayN-h' (specific spot)
+    let dayMatch = focus.match(/^day(\d+)/);
+    if (!dayMatch) return;
+    const dayN = parseInt(dayMatch[1], 10);
+    const dayIdx = state.days.findIndex((d) => d.day === dayN);
+    if (dayIdx < 0) return;
+    selectDay(dayIdx);
+    // If a specific spot id is requested, find and open its popup after the map renders
+    if (/^day\d+-(s\d+|h)$/.test(focus)) {
+      setTimeout(() => {
+        const day = state.days[dayIdx];
+        if (!day || !layerGroup) return;
+        const spotId = focus;
+        let target = null;
+        if (spotId.endsWith('-h')) target = day.hotel;
+        else {
+          const m = spotId.match(/-s(\d+)$/);
+          if (m) target = day.spots[parseInt(m[1], 10) - 1];
+        }
+        if (target && map) {
+          map.setView([target.lat, target.lng], 13, { animate: true });
+          // Find a leaflet marker at that lat/lng and open its popup
+          [layerGroup, markerCluster].forEach((g) => {
+            if (!g || !g.eachLayer) return;
+            g.eachLayer((layer) => {
+              if (layer.getLatLng && Math.abs(layer.getLatLng().lat - target.lat) < 0.0001 && Math.abs(layer.getLatLng().lng - target.lng) < 0.0001) {
+                if (layer.openPopup) layer.openPopup();
+              }
+            });
+          });
+        }
+      }, 500);
+    }
+  } catch (e) { console.warn('focus param', e); }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   state = loadState();
   initMap();
   renderAll();
+  _handleFocusParam();
 
   // Open drawer initially on desktop
   if (window.matchMedia('(min-width: 900px)').matches) {

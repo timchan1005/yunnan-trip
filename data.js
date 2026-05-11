@@ -12,7 +12,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "昆明索菲特大酒店",
         "lat": 25.022379,
-        "lng": 102.70144
+        "lng": 102.70144,
+        "id": "day1-h"
       },
       "spots": [
         {
@@ -20,14 +21,16 @@ window.DEFAULT_ITINERARY =
           "lat": 25.101944,
           "lng": 102.929167,
           "note": "抵達，專車接機",
-          "time": "下午"
+          "time": "下午",
+          "id": "day1-s1"
         },
         {
           "name": "雙橋夜市",
           "lat": 25.00599,
           "lng": 102.73091,
           "note": "雲南小吃",
-          "time": "晚上"
+          "time": "晚上",
+          "id": "day1-s2"
         }
       ]
     },
@@ -39,7 +42,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "昆明索菲特大酒店",
         "lat": 25.022379,
-        "lng": 102.70144
+        "lng": 102.70144,
+        "id": "day2-h"
       },
       "spots": [
         {
@@ -47,21 +51,24 @@ window.DEFAULT_ITINERARY =
           "lat": 24.786,
           "lng": 103.325,
           "note": "世界自然遺產",
-          "time": "上午"
+          "time": "上午",
+          "id": "day2-s1"
         },
         {
           "name": "撈魚河濕地公園",
           "lat": 24.8789,
           "lng": 102.8476,
           "note": "睇日落（滇池東岸）",
-          "time": "傍晚"
+          "time": "傍晚",
+          "id": "day2-s2"
         },
         {
           "name": "昆明老街",
           "lat": 25.042639,
           "lng": 102.706042,
           "note": "晚餐",
-          "time": "晚上"
+          "time": "晚上",
+          "id": "day2-s3"
         }
       ]
     },
@@ -73,7 +80,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "大理悅灣 VILLA 半山海景酒店",
         "lat": 25.6749,
-        "lng": 100.2779
+        "lng": 100.2779,
+        "id": "day3-h"
       },
       "spots": [
         {
@@ -81,28 +89,32 @@ window.DEFAULT_ITINERARY =
           "lat": 25.018069,
           "lng": 102.720933,
           "note": "火車出發",
-          "time": "上午"
+          "time": "上午",
+          "id": "day3-s1"
         },
         {
           "name": "理想邦",
           "lat": 25.6789,
           "lng": 100.2067,
           "note": "聖托里尼風格（海東鎮）",
-          "time": "中午"
+          "time": "中午",
+          "id": "day3-s2"
         },
         {
           "name": "雙廊古鎮",
           "lat": 25.91274,
           "lng": 100.1925,
           "note": "白族古鎮",
-          "time": "下午"
+          "time": "下午",
+          "id": "day3-s3"
         },
         {
           "name": "小普陀",
           "lat": 25.810639,
           "lng": 100.221917,
           "note": "洱海中島嶼",
-          "time": "傍晚"
+          "time": "傍晚",
+          "id": "day3-s4"
         }
       ]
     },
@@ -114,7 +126,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "大理悅灣 VILLA 半山海景酒店",
         "lat": 25.6749,
-        "lng": 100.2779
+        "lng": 100.2779,
+        "id": "day4-h"
       },
       "spots": [
         {
@@ -122,35 +135,40 @@ window.DEFAULT_ITINERARY =
           "lat": 25.856366,
           "lng": 100.129509,
           "note": "白族建築、喜洲粑粑",
-          "time": "上午"
+          "time": "上午",
+          "id": "day4-s1"
         },
         {
           "name": "白族扎染體驗（周城）",
           "lat": 25.89972,
           "lng": 100.10169,
           "note": "扎染工藝體驗",
-          "time": "中午"
+          "time": "中午",
+          "id": "day4-s2"
         },
         {
           "name": "龍龕碼頭（洱海 S 彎）",
           "lat": 25.6898,
           "lng": 100.1316,
           "note": "打卡點",
-          "time": "下午"
+          "time": "下午",
+          "id": "day4-s3"
         },
         {
           "name": "崇聖寺三塔",
           "lat": 25.70849,
           "lng": 100.14594,
           "note": "大理地標",
-          "time": "傍晚"
+          "time": "傍晚",
+          "id": "day4-s4"
         },
         {
           "name": "大理古城",
           "lat": 25.69077,
           "lng": 100.16268,
           "note": "晚餐、夜遊",
-          "time": "晚上"
+          "time": "晚上",
+          "id": "day4-s5"
         }
       ]
     },
@@ -162,7 +180,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "麗江金茂隱逸酒店·凱悅臻選",
         "lat": 26.8854,
-        "lng": 100.2327
+        "lng": 100.2327,
+        "id": "day5-h"
       },
       "spots": [
         {
@@ -170,21 +189,24 @@ window.DEFAULT_ITINERARY =
           "lat": 25.6756,
           "lng": 100.1097,
           "note": "上蒼山",
-          "time": "上午"
+          "time": "上午",
+          "id": "day5-s1"
         },
         {
           "name": "寂照庵",
           "lat": 25.643372,
           "lng": 100.16493,
           "note": "鮮花禪院",
-          "time": "中午"
+          "time": "中午",
+          "id": "day5-s2"
         },
         {
           "name": "麗江古城（大研古鎮）",
           "lat": 26.87972,
           "lng": 100.22694,
           "note": "自由活動",
-          "time": "晚上"
+          "time": "晚上",
+          "id": "day5-s3"
         }
       ]
     },
@@ -196,7 +218,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "麗江金茂隱逸酒店·凱悅臻選",
         "lat": 26.8854,
-        "lng": 100.2327
+        "lng": 100.2327,
+        "id": "day6-h"
       },
       "spots": [
         {
@@ -204,28 +227,32 @@ window.DEFAULT_ITINERARY =
           "lat": 27.087222,
           "lng": 100.154444,
           "note": "海拔 5596m",
-          "time": "上午"
+          "time": "上午",
+          "id": "day6-s1"
         },
         {
           "name": "雲杉坪",
           "lat": 27.127186,
           "lng": 100.23489,
           "note": "高山草甸",
-          "time": "中午"
+          "time": "中午",
+          "id": "day6-s2"
         },
         {
           "name": "藍月谷",
           "lat": 27.126006,
           "lng": 100.244901,
           "note": "玉液湖",
-          "time": "下午"
+          "time": "下午",
+          "id": "day6-s3"
         },
         {
           "name": "白沙古鎮",
           "lat": 26.95728,
           "lng": 100.21488,
           "note": "東巴文化",
-          "time": "傍晚"
+          "time": "傍晚",
+          "id": "day6-s4"
         }
       ]
     },
@@ -237,7 +264,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "瀘沽湖嵐岳酒店",
         "lat": 27.742833,
-        "lng": 100.768417
+        "lng": 100.768417,
+        "id": "day7-h"
       },
       "spots": [
         {
@@ -245,14 +273,16 @@ window.DEFAULT_ITINERARY =
           "lat": 27.688,
           "lng": 100.766,
           "note": "湖景全景",
-          "time": "下午"
+          "time": "下午",
+          "id": "day7-s1"
         },
         {
           "name": "摩梭篝火晚會",
           "lat": 27.7125,
           "lng": 100.823333,
           "note": "民族表演（里格村）",
-          "time": "晚上"
+          "time": "晚上",
+          "id": "day7-s2"
         }
       ]
     },
@@ -264,7 +294,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "麗江悅榕莊",
         "lat": 26.924406,
-        "lng": 100.213118
+        "lng": 100.213118,
+        "id": "day8-h"
       },
       "spots": [
         {
@@ -272,21 +303,24 @@ window.DEFAULT_ITINERARY =
           "lat": 27.7125,
           "lng": 100.823333,
           "note": "睇日出",
-          "time": "清晨"
+          "time": "清晨",
+          "id": "day8-s1"
         },
         {
           "name": "草海走婚橋",
           "lat": 27.690833,
           "lng": 100.746944,
           "note": "摩梭文化",
-          "time": "上午"
+          "time": "上午",
+          "id": "day8-s2"
         },
         {
           "name": "返回麗江",
           "lat": 26.924406,
           "lng": 100.213118,
           "note": "車程 ~5 小時",
-          "time": "下午"
+          "time": "下午",
+          "id": "day8-s3"
         }
       ]
     },
@@ -298,7 +332,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "迪慶月光城英迪格酒店",
         "lat": 27.826503,
-        "lng": 99.702941
+        "lng": 99.702941,
+        "id": "day9-h"
       },
       "spots": [
         {
@@ -306,14 +341,16 @@ window.DEFAULT_ITINERARY =
           "lat": 27.23,
           "lng": 100.14,
           "note": "金沙江峽谷（上虎跳）",
-          "time": "上午"
+          "time": "上午",
+          "id": "day9-s1"
         },
         {
           "name": "獨克宗古城",
           "lat": 27.81333,
           "lng": 99.70611,
           "note": "藏式古城",
-          "time": "傍晚"
+          "time": "傍晚",
+          "id": "day9-s2"
         }
       ]
     },
@@ -325,7 +362,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "雪山醒來酒店（霧濃頂）",
         "lat": 28.3842,
-        "lng": 98.8619
+        "lng": 98.8619,
+        "id": "day10-h"
       },
       "spots": [
         {
@@ -333,28 +371,32 @@ window.DEFAULT_ITINERARY =
           "lat": 27.86355,
           "lng": 99.70434,
           "note": "小布達拉宮",
-          "time": "上午"
+          "time": "上午",
+          "id": "day10-s1"
         },
         {
           "name": "大經幡（龜山公園）",
           "lat": 27.813333,
           "lng": 99.706111,
           "note": "祈福地",
-          "time": "中午"
+          "time": "中午",
+          "id": "day10-s2"
         },
         {
           "name": "白馬雪山觀景台",
           "lat": 28.3833,
           "lng": 99.0055,
           "note": "海拔 4292m",
-          "time": "下午"
+          "time": "下午",
+          "id": "day10-s3"
         },
         {
           "name": "霧濃頂觀景台",
           "lat": 28.4135,
           "lng": 98.8857,
           "note": "翌晨睇日照金山",
-          "time": "傍晚"
+          "time": "傍晚",
+          "id": "day10-s4"
         }
       ]
     },
@@ -366,7 +408,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "香格里拉仁安悅榕莊",
         "lat": 27.7618,
-        "lng": 99.769
+        "lng": 99.769,
+        "id": "day11-h"
       },
       "spots": [
         {
@@ -374,21 +417,24 @@ window.DEFAULT_ITINERARY =
           "lat": 28.472313,
           "lng": 98.839874,
           "note": "梅里雪山日照金山",
-          "time": "清晨"
+          "time": "清晨",
+          "id": "day11-s1"
         },
         {
           "name": "金沙江第一灣（石鼓鎮）",
           "lat": 26.868156,
           "lng": 99.962104,
           "note": "U 形大灣",
-          "time": "中午"
+          "time": "中午",
+          "id": "day11-s2"
         },
         {
           "name": "返回香格里拉",
           "lat": 27.7618,
           "lng": 99.769,
           "note": "車程 ~5 小時",
-          "time": "下午"
+          "time": "下午",
+          "id": "day11-s3"
         }
       ]
     },
@@ -400,7 +446,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "香格里拉闊野此間",
         "lat": 27.8289,
-        "lng": 99.7032
+        "lng": 99.7032,
+        "id": "day12-h"
       },
       "spots": [
         {
@@ -408,14 +455,16 @@ window.DEFAULT_ITINERARY =
           "lat": 27.825,
           "lng": 99.995278,
           "note": "高原濕地、屬都湖",
-          "time": "上午"
+          "time": "上午",
+          "id": "day12-s1"
         },
         {
           "name": "納帕海",
           "lat": 27.89111,
           "lng": 99.63278,
           "note": "草原濕地",
-          "time": "下午"
+          "time": "下午",
+          "id": "day12-s2"
         }
       ]
     },
@@ -427,7 +476,8 @@ window.DEFAULT_ITINERARY =
       "hotel": {
         "name": "迪慶香格里拉機場",
         "lat": 27.793333,
-        "lng": 99.677333
+        "lng": 99.677333,
+        "id": "day13-h"
       },
       "spots": [
         {
@@ -435,7 +485,8 @@ window.DEFAULT_ITINERARY =
           "lat": 27.793333,
           "lng": 99.677333,
           "note": "飛機回港",
-          "time": "上午"
+          "time": "上午",
+          "id": "day13-s1"
         }
       ]
     }
