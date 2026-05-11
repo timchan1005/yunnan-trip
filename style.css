@@ -1713,11 +1713,8 @@ body.view-budget .fab {
   }
 
   /* Top-bar quick-nav active chip — dark inversion so it stays readable */
-  .mqn-active {
-    background: rgba(236, 236, 239, 0.94);
-    color: #14171d;
-  }
-  .mqn-active:hover {
+  .map-quick-nav .mqn-active,
+  .map-quick-nav .mqn-active:hover {
     background: rgba(236, 236, 239, 0.94);
     color: #14171d;
   }
