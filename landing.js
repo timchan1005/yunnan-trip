@@ -27,7 +27,7 @@
   }
 
   // Leaflet maps cache, so we can re-use instead of re-create
-  const leafletMaps = { overview: null, region: null };
+  // (v30) Ink-painting maps replace Leaflet — no map instances to track.
   let currentRegionId = null;
 
   // ---------- Router ----------
@@ -100,11 +100,6 @@
     document.querySelectorAll('.map-level').forEach((el) => {
       el.hidden = el.getAttribute('data-level') !== name;
     });
-    // Tell Leaflet to recalc after visibility change
-    setTimeout(() => {
-      if (leafletMaps.overview) leafletMaps.overview.invalidateSize();
-      if (leafletMaps.region)   leafletMaps.region.invalidateSize();
-    }, 60);
   }
 
   // ---------- Map crumb ----------
@@ -141,73 +136,39 @@
     }
   }
 
-  // ---------- Leaflet helpers ----------
-  // Tile layer: CARTO Voyager (no labels) — we add our own labels via DivIcon
-  function makeTileLayer() {
-    return L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
-      {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 16,
-        minZoom: 4,
-      }
-    );
-  }
-
-  // Build an ink-pin DivIcon for a region or spot
-  function makeLabelIcon(name, opts) {
+  // ---------- Pin builder (ink-map version) ----------
+  function buildInkPin(name, opts) {
     const isRegion = opts && opts.kind === 'region';
     const drillable = opts && opts.drillable;
-    const html = `
-      <span class="mpin ${isRegion ? 'mpin-region' : 'mpin-spot'} ${drillable ? 'mpin-drill' : ''}">
-        <span class="mpin-dot"></span>
-        <span class="mpin-name">${escapeHTML(name)}</span>
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = `ink-pin ${isRegion ? 'ink-pin-region' : 'ink-pin-spot'} ${drillable ? 'ink-pin-drill' : ''}`;
+    el.innerHTML = `
+      <span class="ink-pin-stem"></span>
+      <span class="ink-pin-label">
+        <span class="ink-pin-dot"></span>
+        <span class="ink-pin-name">${escapeHTML(name)}</span>
       </span>`;
-    return L.divIcon({
-      html,
-      className: 'mpin-wrap',
-      iconSize: null,
-      iconAnchor: [6, 6], // anchor at dot center (approx); CSS translate handles centering
-    });
+    return el;
   }
 
   // ---------- Level 0: Overview ----------
   function renderOverview() {
     renderCrumb('overview');
     const o = MAP.overview;
-
-    if (!leafletMaps.overview) {
-      const map = L.map('overviewMap', {
-        zoomControl: true,
-        attributionControl: true,
-        dragging: true,
-        scrollWheelZoom: false,
-        tap: true,
-      });
-      map.fitBounds(o.bounds, { padding: [20, 20] });
-      makeTileLayer().addTo(map);
-
-      // Add region pins
-      o.regions.forEach((reg) => {
-        const m = L.marker(reg.gps, {
-          icon: makeLabelIcon(reg.name, { kind: 'region', drillable: true }),
-          riseOnHover: true,
-        });
-        m.on('click', () => { location.hash = `#/map/${reg.id}`; });
-        m.addTo(map);
-      });
-
-      // Disable map's own zoom-on-scroll prompt for cleaner UX on mobile
-      map.on('focus', () => map.scrollWheelZoom.enable());
-      map.on('blur',  () => map.scrollWheelZoom.disable());
-
-      leafletMaps.overview = map;
-    } else {
-      // Re-fit on re-enter (in case window resized)
-      leafletMaps.overview.fitBounds(o.bounds, { padding: [20, 20] });
-    }
-
+    const stage = $('overviewStage');
+    stage.innerHTML = `
+      <img class="inkmap-img" src="${o.mapImg}" alt="雲南水墨地圖" />
+      <div class="inkmap-pins" id="overviewPins"></div>
+    `;
+    const pins = stage.querySelector('#overviewPins');
+    o.regions.forEach((reg) => {
+      const p = buildInkPin(reg.name, { kind: 'region', drillable: true });
+      p.style.left = reg.xy[0] + '%';
+      p.style.top  = reg.xy[1] + '%';
+      p.addEventListener('click', () => { location.hash = `#/map/${reg.id}`; });
+      pins.appendChild(p);
+    });
     $('crumbMeta').textContent = '5 個區 · 13 日';
   }
 
@@ -217,39 +178,22 @@
     $('regionEyebrow').textContent = '雲南 · ' + region.name;
     $('regionTitle').textContent = region.name;
     $('regionSub').textContent = region.subtitle || '';
-
-    // (Re)create region map fresh each time (different bounds + spots)
-    if (leafletMaps.region) {
-      leafletMaps.region.remove();
-      leafletMaps.region = null;
-    }
     currentRegionId = regionId;
 
-    const map = L.map('regionMap', {
-      zoomControl: true,
-      attributionControl: true,
-      dragging: true,
-      scrollWheelZoom: false,
-      tap: true,
-    });
-    map.fitBounds(region.bounds, { padding: [24, 24] });
-    makeTileLayer().addTo(map);
-
+    const stage = $('regionStage');
+    stage.innerHTML = `
+      <img class="inkmap-img" src="${region.mapImg}" alt="${region.name}水墨地圖" />
+      <div class="inkmap-pins" id="regionPins"></div>
+    `;
+    const pins = stage.querySelector('#regionPins');
     region.spots.forEach((sp) => {
-      if (!sp.gps) return;
-      const m = L.marker(sp.gps, {
-        icon: makeLabelIcon(sp.name, { kind: 'spot', drillable: !!sp.hasImg }),
-        riseOnHover: true,
-      });
-      m.on('click', () => { location.hash = `#/map/${regionId}/${sp.id}`; });
-      m.addTo(map);
+      if (!sp.xy) return;
+      const p = buildInkPin(sp.name, { kind: 'spot', drillable: !!sp.hasImg });
+      p.style.left = sp.xy[0] + '%';
+      p.style.top  = sp.xy[1] + '%';
+      p.addEventListener('click', () => { location.hash = `#/map/${regionId}/${sp.id}`; });
+      pins.appendChild(p);
     });
-
-    map.on('focus', () => map.scrollWheelZoom.enable());
-    map.on('blur',  () => map.scrollWheelZoom.disable());
-
-    leafletMaps.region = map;
-
     $('crumbMeta').textContent = region.spots.length + ' 個景點';
   }
 
@@ -451,10 +395,7 @@
     wireCrumb();
     handleRoute();
     window.addEventListener('hashchange', handleRoute);
-    window.addEventListener('resize', () => {
-      if (leafletMaps.overview) leafletMaps.overview.invalidateSize();
-      if (leafletMaps.region)   leafletMaps.region.invalidateSize();
-    });
+    // v30: ink-map is purely image + abs-positioned pins — no resize handler needed.
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

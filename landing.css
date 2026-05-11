@@ -881,17 +881,53 @@ body.on-landing,
 /* Stats strip stays paper-toned */
 .stats { border-bottom: 0; position: relative; z-index: 1; }
 
-/* ====== v29 transition strip ====== */
-.story-transition {
-  height: 22vh;
-  min-height: 140px;
-  background: linear-gradient(180deg, var(--from, var(--paper)) 0%, var(--to, var(--paper)) 100%);
-  position: relative;
-  z-index: 1;
+/* ====== v30 watercolor feather edges — each story image fades in/out at top & bottom ====== */
+/* Soft mask so each scene’s bg melts into paper above/below it. The story
+   background image carries its own art, then masks itself out at top and bottom
+   ~14% of its height with a smooth alpha gradient. The page paper colour shows
+   through cleanly, no hard band, no colored transition strip. */
+.story .story-bg {
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0,0,0,0.35) 6%,
+    #000 14%,
+    #000 86%,
+    rgba(0,0,0,0.35) 94%,
+    transparent 100%
+  );
+          mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0,0,0,0.35) 6%,
+    #000 14%,
+    #000 86%,
+    rgba(0,0,0,0.35) 94%,
+    transparent 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
 }
+/* Hero — keep top fully solid (it's the first scene), feather only bottom */
+.hero .story-bg {
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 84%, rgba(0,0,0,0.35) 94%, transparent 100%);
+          mask-image: linear-gradient(180deg, #000 0%, #000 84%, rgba(0,0,0,0.35) 94%, transparent 100%);
+}
+/* Outro — feather only top */
+.outro .story-bg {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.35) 6%, #000 14%, #000 100%);
+          mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.35) 6%, #000 14%, #000 100%);
+}
+
+/* Pull stories slightly into each other so the feather edges overlap and the
+   paper color reads as one continuous fade rather than separate slabs. */
+.story + .story { margin-top: -10vh; }
 @media (max-width: 700px) {
-  .story-transition { height: 18vh; min-height: 110px; }
+  .story + .story { margin-top: -7vh; }
 }
+
+/* (deprecated) v29 transition strip kept for backwards compat — hide if any remain */
+.story-transition { display: none; }
 
 /* ============================================================
    v28: 3-level hand-drawn map drill-down
@@ -1307,138 +1343,179 @@ body.on-landing,
 .view-map .map-hero { display: none; }
 
 /* ============================================================
-   v29: Leaflet real-map overview + region (ink-wash filter)
+   v30: AI ink-painting maps + absolute-positioned pins
 ============================================================ */
-.map-canvas-leaflet {
+.map-canvas-ink {
   position: relative;
   display: block;
   margin: 0 auto;
-  max-width: 980px;
-  height: 62vh;
-  min-height: 420px;
-  max-height: 680px;
+  max-width: 1040px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
   border-radius: 22px;
   overflow: hidden;
+  background: #efe6d4;
   box-shadow:
-    0 18px 44px rgba(28,24,20,0.14),
-    0 4px 10px rgba(28,24,20,0.06);
-  background: var(--paper-2);
-  /* subtle inner cream vignette to make the map feel like aged paper */
+    0 22px 52px rgba(28,24,20,0.18),
+    0 6px 14px rgba(28,24,20,0.08);
   isolation: isolate;
 }
-.map-canvas-leaflet::after {
+.map-canvas-ink::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 350;
-  box-shadow: inset 0 0 80px rgba(180, 140, 90, 0.18);
+  z-index: 9;
+  box-shadow: inset 0 0 80px rgba(140, 110, 70, 0.20);
   border-radius: 22px;
 }
-.leaflet-stage {
+.inkmap-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.inkmap-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  background: #efe6d4;
+  object-fit: cover;
+  display: block;
+  /* tiny paper-grain shimmer */
+  filter: contrast(1.02) saturate(0.95);
 }
-/* Ink-wash filter on the tile layer only — keeps overlay pins crisp */
-.leaflet-tile-pane {
-  filter: sepia(0.35) saturate(0.55) brightness(1.04) contrast(0.92) hue-rotate(-8deg);
+.inkmap-pins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
 }
-/* Lighten the default Leaflet controls so they don't clash with paper tone */
-.leaflet-control-zoom a {
-  background-color: rgba(255, 250, 244, 0.94) !important;
-  color: var(--ink) !important;
-  border-color: rgba(120, 108, 90, 0.25) !important;
-  font-family: var(--font-serif);
-  font-weight: 700;
-}
-.leaflet-control-zoom a:hover {
-  background-color: var(--paper-2) !important;
-  color: var(--sunset-deep) !important;
-}
-.leaflet-control-attribution {
-  background: rgba(255,250,244,0.75) !important;
-  color: var(--ink-3) !important;
-  font-size: 10px !important;
-  padding: 2px 6px !important;
-}
-.leaflet-control-attribution a { color: var(--ink-2) !important; }
 
-/* v29 ink pins (Leaflet DivIcon) */
-.mpin-wrap {
-  background: transparent !important;
-  border: 0 !important;
-  /* prevent default Leaflet DivIcon box from sizing */
+/* v30 ink pins — dot anchored at xy, label floats above */
+.ink-pin {
+  position: absolute;
+  left: 0; top: 0;
+  transform: translate(-50%, -100%);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  font: inherit;
+  color: inherit;
+  white-space: nowrap;
+  transition: transform 0.22s var(--easing);
 }
-.mpin {
+.ink-pin-label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px 6px 8px;
+  padding: 6px 14px 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 250, 244, 0.92);
-  border: 1px solid rgba(120, 108, 90, 0.22);
+  background: rgba(255, 250, 244, 0.94);
+  border: 1px solid rgba(120, 108, 90, 0.28);
+  box-shadow: 0 6px 14px rgba(28, 24, 20, 0.18);
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(28, 24, 20, 0.12);
-  transform: translate(-50%, -100%);
-  /* anchor the pin so the dot sits at the GPS coord */
-  position: relative;
-  top: 6px; left: 6px;
-  cursor: pointer;
-  transition: background 0.2s var(--easing), border-color 0.2s var(--easing), transform 0.2s var(--easing), box-shadow 0.2s var(--easing);
-  pointer-events: auto;
+  transition: background 0.2s var(--easing), border-color 0.2s var(--easing), box-shadow 0.2s var(--easing);
 }
-.mpin::after {
-  /* little stem so the dot visually points down to the geo location */
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -6px;
-  width: 0; height: 0;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: rgba(255, 250, 244, 0.92);
-}
-.mpin-dot {
+.ink-pin-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
   background: var(--ink-2);
   flex-shrink: 0;
 }
-.mpin-region .mpin-dot { background: var(--sunset); width: 10px; height: 10px; }
-.mpin-name {
+.ink-pin-name {
   font-family: var(--font-serif);
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.06em;
   color: var(--ink);
 }
-.mpin-region .mpin-name { font-size: 16px; color: var(--ink); }
-.mpin-drill .mpin-name {
-  background-image: linear-gradient(transparent 88%, rgba(184,90,42,0.5) 88%);
+.ink-pin-stem {
+  /* short ink stem from label down to the actual location dot */
+  width: 1.5px;
+  height: 14px;
+  background: linear-gradient(180deg, rgba(60,42,28,0.85), rgba(60,42,28,0.15));
+  border-radius: 1px;
+  margin-bottom: -3px;
+  order: 2; /* below the label */
+}
+.ink-pin-label { order: 1; }
+.ink-pin::after {
+  /* anchor dot at exact xy */
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: var(--sunset-deep);
+  box-shadow: 0 0 0 3px rgba(255, 250, 244, 0.85), 0 2px 5px rgba(28,24,20,0.30);
+}
+.ink-pin-region {
+  z-index: 4;
+}
+.ink-pin-region .ink-pin-label {
+  padding: 7px 18px 7px 12px;
+  background: rgba(255, 250, 244, 0.97);
+  border-color: rgba(184, 90, 42, 0.5);
+  box-shadow: 0 8px 18px rgba(28,24,20,0.22);
+}
+.ink-pin-region .ink-pin-name {
+  font-size: 17px;
+  letter-spacing: 0.10em;
+}
+.ink-pin-region .ink-pin-dot {
+  width: 10px; height: 10px;
+  background: var(--sunset);
+}
+.ink-pin-region::after {
+  width: 10px; height: 10px;
+  background: var(--sunset);
+}
+.ink-pin-region .ink-pin-stem {
+  height: 20px;
+  background: linear-gradient(180deg, rgba(184,90,42,0.9), rgba(184,90,42,0.2));
+}
+.ink-pin-drill .ink-pin-name {
+  background-image: linear-gradient(transparent 86%, rgba(184,90,42,0.55) 86%);
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
-.mpin:hover {
+.ink-pin:hover {
+  transform: translate(-50%, -100%) translateY(-3px) scale(1.04);
+  z-index: 10;
+}
+.ink-pin:hover .ink-pin-label {
   background: var(--paper);
   border-color: var(--sunset);
-  transform: translate(-50%, -100%) scale(1.06);
-  box-shadow: 0 8px 20px rgba(184, 90, 42, 0.25);
+  box-shadow: 0 12px 24px rgba(184, 90, 42, 0.28);
 }
-.mpin:hover .mpin-dot { background: var(--sunset); }
-.mpin:hover::after { border-top-color: var(--paper); }
+.ink-pin:focus-visible .ink-pin-label {
+  outline: 2px solid var(--sunset);
+  outline-offset: 2px;
+}
 
 @media (max-width: 900px) {
-  .map-canvas-leaflet { height: 56vh; min-height: 360px; border-radius: 16px; }
-  .mpin { padding: 5px 11px 5px 7px; }
-  .mpin-name { font-size: 12.5px; }
-  .mpin-region .mpin-name { font-size: 14px; }
+  .map-canvas-ink { border-radius: 16px; }
+  .ink-pin-label { padding: 5px 11px 5px 8px; gap: 6px; }
+  .ink-pin-name { font-size: 12px; letter-spacing: 0.04em; }
+  .ink-pin-region .ink-pin-name { font-size: 14px; letter-spacing: 0.06em; }
+  .ink-pin-region .ink-pin-label { padding: 6px 14px 6px 10px; }
+  .ink-pin-stem { height: 10px; }
+  .ink-pin-region .ink-pin-stem { height: 14px; }
 }
 @media (max-width: 560px) {
-  .map-canvas-leaflet { height: 52vh; min-height: 320px; }
-  .mpin-name { font-size: 11.5px; letter-spacing: 0.04em; }
-  .mpin-region .mpin-name { font-size: 13px; }
+  .map-canvas-ink { border-radius: 14px; }
+  .ink-pin-label { padding: 4px 9px 4px 7px; gap: 5px; }
+  .ink-pin-name { font-size: 11px; }
+  .ink-pin-region .ink-pin-name { font-size: 12.5px; }
+  .ink-pin::after { width: 6px; height: 6px; }
+  .ink-pin-region::after { width: 8px; height: 8px; }
 }
 

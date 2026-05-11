@@ -10,9 +10,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <link rel="preload" as="image" href="img/v28_spot_day11-s1_meili.webp">
-<link rel="stylesheet" href="landing.css?v=29">
+<link rel="preload" as="image" href="img/v30_yunnan_overview.webp">
+<link rel="stylesheet" href="landing.css?v=30">
 </head>
 <body>
 
@@ -86,7 +86,6 @@
   </section>
 
   <!-- Transition strip: stats (paper) → kunming (warm red) -->
-  <div class="story-transition" style="--from:#faf2e4; --to:#5c2118;"></div>
 
   <!-- City story sections -->
   <section class="story" id="story-kunming" data-color="#5c2118">
@@ -110,7 +109,6 @@
   </section>
 
   <!-- Transition strip: kunming (deep red) → dali (jade) -->
-  <div class="story-transition" style="--from:#5c2118; --to:#1f4a48;"></div>
 
   <section class="story" id="story-dali" data-color="#1f4a48">
     <div class="story-bg" style="background-image:url('img/yn_city_2_dali.webp')"></div>
@@ -133,7 +131,6 @@
   </section>
 
   <!-- Transition strip: dali (jade) → lijiang (pine green) -->
-  <div class="story-transition" style="--from:#1f4a48; --to:#0e3b3a;"></div>
 
   <section class="story" id="story-lijiang" data-color="#0e3b3a">
     <div class="story-bg" style="background-image:url('img/yn_city_3_lijiang.webp')"></div>
@@ -156,7 +153,6 @@
   </section>
 
   <!-- Transition strip: lijiang (pine) → lugu (deep blue) -->
-  <div class="story-transition" style="--from:#0e3b3a; --to:#13345a;"></div>
 
   <section class="story" id="story-lugu" data-color="#13345a">
     <div class="story-bg" style="background-image:url('img/yn_city_4_lugu.webp')"></div>
@@ -179,7 +175,6 @@
   </section>
 
   <!-- Transition strip: lugu (deep blue) → shangrila (indigo ink) -->
-  <div class="story-transition" style="--from:#13345a; --to:#0c1f3f;"></div>
 
   <section class="story" id="story-shangrila" data-color="#0c1f3f">
     <div class="story-bg" style="background-image:url('img/yn_city_5_shangrila.webp')"></div>
@@ -205,7 +200,6 @@
   </section>
 
   <!-- Transition strip: shangrila (indigo) → outro (paper) -->
-  <div class="story-transition" style="--from:#0c1f3f; --to:#faf2e4;"></div>
 
   <!-- Route preview / CTA -->
   <section class="outro">
@@ -263,20 +257,20 @@
 
     <!-- Level 0: Yunnan overview — Leaflet real map + ink-wash filter -->
     <div class="map-level map-level-overview" data-level="overview">
-      <div class="map-canvas map-canvas-leaflet">
-        <div id="overviewMap" class="leaflet-stage" aria-label="雲南總覽地圖"></div>
+      <div class="map-canvas map-canvas-ink">
+        <div id="overviewStage" class="inkmap-stage" aria-label="雲南總覽水墨地圖"></div>
       </div>
       <div class="map-caption">
         <span class="map-caption-eyebrow">水墨雲南 · 真實地形</span>
         <h2 class="map-caption-title">撳一下地名，行入去</h2>
-        <p class="map-caption-sub">真實 OSM 地圖加水墨濾鏡 · 由總覽 → 城市區 → 景點特寫</p>
+        <p class="map-caption-sub">人手手繪水墨雲南 · 由總覽 → 城市區 → 景點特寫</p>
       </div>
     </div>
 
     <!-- Level 1: Region (city) — Leaflet real map fit to region bounds -->
     <div class="map-level map-level-region" data-level="region" hidden>
-      <div class="map-canvas map-canvas-leaflet">
-        <div id="regionMap" class="leaflet-stage" aria-label="城市區地圖"></div>
+      <div class="map-canvas map-canvas-ink">
+        <div id="regionStage" class="inkmap-stage" aria-label="城市區水墨地圖"></div>
       </div>
       <div class="map-caption">
         <span class="map-caption-eyebrow" id="regionEyebrow"></span>
@@ -303,9 +297,8 @@
   </div>
 </main>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="data.js?v=29"></script>
-<script src="mapdata.js?v=29"></script>
-<script src="landing.js?v=29"></script>
+<script src="data.js?v=30"></script>
+<script src="mapdata.js?v=30"></script>
+<script src="landing.js?v=30"></script>
 </body>
 </html>
