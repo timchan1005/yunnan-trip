@@ -2678,4 +2678,32 @@ body.view-budget .fab {
   .mqn-link span { display: none; }
   .mqn-link svg { width: 14px; height: 14px; }
 }
+
+/* ============ v29: slim topbar on mobile ============ */
+@media (max-width: 720px) {
+  .topbar-inner { gap: 6px; padding: 0 10px; padding-left: max(10px, var(--safe-left)); padding-right: max(10px, var(--safe-right)); }
+  .brand { gap: 7px; }
+  .brand-mark { width: 24px; height: 24px; }
+  .brand-title { font-size: 15px; letter-spacing: 0.01em; }
+  .brand-sub { display: none; } /* save vertical/horizontal space */
+  .map-quick-nav { margin-left: 4px; }
+  /* Force view-tabs (地圖/預算) into icon-only mode */
+  .view-tabs .view-tab span { display: none; }
+  .view-tabs .view-tab { padding: 6px 10px; min-width: 36px; }
+}
+@media (max-width: 480px) {
+  .topbar-inner { padding: 0 8px; gap: 4px; }
+  .brand-mark { width: 22px; height: 22px; }
+  .brand-title { font-size: 14px; }
+  /* hide 互動 pill (we're already on 互動地圖, no need to show 互動 nav) */
+  .map-quick-nav .mqn-active { display: none; }
+  .map-quick-nav { padding: 2px; gap: 1px; }
+  .mqn-link { padding: 4px 7px; }
+}
+
+/* Move day-rail down so it doesn't collide with topbar shadow */
+@media (max-width: 720px) {
+  .day-rail-wrap { top: 8px; }
+  .day-chip { height: 32px; font-size: 12px; padding: 0 11px; }
+}
 /* keep icons even on smallest screens */
