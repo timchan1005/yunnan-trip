@@ -671,7 +671,7 @@ function _haversineKm(a, b) {
 }
 // Estimated total straight-line km for a day's route: hotel -> spot1 -> spot2 -> ... -> hotel
 // Multiplied by 1.4 to approximate road distance.
-function _dayRouteKm(d) {
+function _dayRouteKm(d, prevDay) {
   if (!d || !d.spots || d.spots.length === 0) return 0;
   // Accept either {lat,lng} directly on the object, or nested under .coords
   const pt = (o) => {
@@ -680,11 +680,14 @@ function _dayRouteKm(d) {
     if (o.coords && isFinite(o.coords.lat) && isFinite(o.coords.lng)) return o.coords;
     return null;
   };
+  // Start from previous day's hotel if available (transit days work better),
+  // otherwise from current hotel. End at current day's hotel.
   const points = [];
-  const hp = pt(d.hotel);
-  if (hp) points.push(hp);
+  const startPt = pt(prevDay && prevDay.hotel) || pt(d.hotel);
+  const endPt = pt(d.hotel);
+  if (startPt) points.push(startPt);
   d.spots.forEach((s) => { const p = pt(s); if (p) points.push(p); });
-  if (hp) points.push(hp);
+  if (endPt && points[points.length - 1] !== endPt) points.push(endPt);
   if (points.length < 2) return 0;
   let km = 0;
   for (let i = 1; i < points.length; i++) {
@@ -701,7 +704,7 @@ function renderDrawer() {
     const card = document.createElement('div');
     card.className = 'day-card';
     card.id = `day-card-${dayIdx}`;
-    const totalKm = _dayRouteKm(d);
+    const totalKm = _dayRouteKm(d, state.days[dayIdx - 1]);
     const driveMin = totalKm > 0 ? Math.round(totalKm / 60 * 60) : 0; // ~60 km/h average
     const distLabel = totalKm > 0
       ? `<span>約 ${totalKm.toFixed(0)} km</span><span>車程 ${driveMin >= 60 ? `${Math.floor(driveMin/60)}小時${driveMin%60 ? ` ${driveMin%60}分` : ''}` : `${driveMin}分`}</span>`
