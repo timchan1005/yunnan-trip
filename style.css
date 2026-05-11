@@ -108,45 +108,48 @@ input, select, textarea { font-family: inherit; font-size: 16px; /* prevent iOS 
   z-index: 500;
   pointer-events: none;
 }
-/* Fade only on mobile where rail scrolls horizontally */
-@media (max-width: 720px) {
-  .day-rail-wrap::after {
-    content: '';
-    position: absolute;
-    top: 0; bottom: 0;
-    right: max(14px, var(--safe-right));
-    width: 36px;
-    background: linear-gradient(to left, rgba(250, 247, 242, 0.95), transparent);
-    pointer-events: none;
-  }
-}
+
 .day-rail {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   padding: 0 14px;
-  /* Wrap mode (desktop): no pointer events on the rail itself */
-  pointer-events: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  pointer-events: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+  max-width: 100%;
 }
-/* Phone: scroll horizontally; rail must accept touches for native momentum scrolling */
+.day-rail::-webkit-scrollbar { display: none; }
+.day-rail-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 0;
+  width: 24px;
+  background: linear-gradient(to right, rgba(250, 247, 242, 0.95), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+.day-rail-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  right: 0;
+  width: 36px;
+  background: linear-gradient(to left, rgba(250, 247, 242, 0.95), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+/* Phone tweaks: flush-left, smaller padding for native momentum scrolling */
 @media (max-width: 720px) {
   .day-rail {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    pointer-events: auto;             /* allow touch-scroll on iOS */
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-    overscroll-behavior-x: contain;   /* don't bounce the page when reaching edge */
-    touch-action: pan-x;              /* tell iOS this is a horizontal scroll surface */
-    padding: 0 0 4px 0;               /* drop horizontal padding — wrap already inset; align flush-left */
+    touch-action: pan-x;
+    padding: 0 0 4px 0;
     justify-content: flex-start;
-  }
-  .day-rail::-webkit-scrollbar { display: none; }
-  /* Make the fade overlay stop short of the right edge so last chip is reachable */
-  .day-rail-wrap::after {
-    pointer-events: none;
   }
 }
 .day-chip {
@@ -1707,6 +1710,24 @@ body.view-budget .fab {
     background: rgba(240, 163, 102, 0.16);
     border-color: rgba(240, 163, 102, 0.30);
     color: #f0a366;
+  }
+
+  /* Top-bar quick-nav active chip — dark inversion so it stays readable */
+  .mqn-active {
+    background: rgba(236, 236, 239, 0.94);
+    color: #14171d;
+  }
+  .mqn-active:hover {
+    background: rgba(236, 236, 239, 0.94);
+    color: #14171d;
+  }
+
+  /* Day-rail edge fades — match dark surface, not light cream */
+  .day-rail-wrap::before {
+    background: linear-gradient(to right, rgba(15, 17, 21, 0.95), transparent);
+  }
+  .day-rail-wrap::after {
+    background: linear-gradient(to left, rgba(15, 17, 21, 0.95), transparent);
   }
 
   /* Mobile day-picker trigger — invert white background to dark */
