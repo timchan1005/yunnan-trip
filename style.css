@@ -2437,8 +2437,8 @@ body.view-budget .fab {
   .sync-label { display: none; }
   .sync-badge[data-state]:not([data-state="idle"]) .sync-label { display: inline; }
   
-  /* Day rail: less crowded on mobile */
-  .day-rail-wrap { top: 12px; }
+  /* Day rail: less crowded on mobile, give space for the drawer-toggle handle on the left */
+  .day-rail-wrap { top: 12px; left: 120px; right: 12px; }
   .day-chip { height: 32px; padding: 0 12px; font-size: 12px; }
   .day-chip-dot { width: 7px; height: 7px; }
   

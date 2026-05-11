@@ -673,10 +673,18 @@ function _haversineKm(a, b) {
 // Multiplied by 1.4 to approximate road distance.
 function _dayRouteKm(d) {
   if (!d || !d.spots || d.spots.length === 0) return 0;
+  // Accept either {lat,lng} directly on the object, or nested under .coords
+  const pt = (o) => {
+    if (!o) return null;
+    if (isFinite(o.lat) && isFinite(o.lng)) return { lat: o.lat, lng: o.lng };
+    if (o.coords && isFinite(o.coords.lat) && isFinite(o.coords.lng)) return o.coords;
+    return null;
+  };
   const points = [];
-  if (d.hotel && d.hotel.coords) points.push(d.hotel.coords);
-  d.spots.forEach((s) => { if (s.coords) points.push(s.coords); });
-  if (d.hotel && d.hotel.coords) points.push(d.hotel.coords);
+  const hp = pt(d.hotel);
+  if (hp) points.push(hp);
+  d.spots.forEach((s) => { const p = pt(s); if (p) points.push(p); });
+  if (hp) points.push(hp);
   if (points.length < 2) return 0;
   let km = 0;
   for (let i = 1; i < points.length; i++) {
