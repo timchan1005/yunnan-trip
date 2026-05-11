@@ -191,7 +191,7 @@ window.MAP_DATA = {
     },
     'day7-s1': {
       name: '瀘沽湖觀景台', region: 'lugu',
-      img: 'img/v28_spot_day7-s1_lugu_view.webp', aspect: 4/3,
+      img: 'img/v32_spot_day7-s1_lugu_view.webp', aspect: 4/3,
       intro: '雲南—四川交界嘅高原湖泊，海拔 2,690 米，係中國最深嘅內陸湖之一。湖中有 5 個島，湖畔住緊摩梭族，至今保留「走婚」習俗。',
       pointers: [
         { x: 0.50, y: 0.45, label: '心形湖面', note: '高原湛藍倒影' },
@@ -247,7 +247,7 @@ window.MAP_DATA = {
     // ===== v29 new 19 spots =====
     'day1-s2': {
       name: '雙橋夜市', region: 'kunming',
-      img: 'img/v29_spot_day1-s2_shuangqiao.webp', aspect: 4/3,
+      img: 'img/v32_spot_day1-s2_shuangqiao.webp', aspect: 4/3,
       intro: '昆明老城最熱鬧嘅夜市之一，紅燈籠串成街、小食檔由黃昏擺到深夜。豆花米線、過橋米線、燒餌塊、汽鍋雞，雲南風味一條街食晒。',
       pointers: [
         { x: 0.45, y: 0.55, label: '小食街檔', note: '雲南小食 + 街口炒粉' },
@@ -256,7 +256,7 @@ window.MAP_DATA = {
     },
     'day2-s2': {
       name: '撈魚河濕地', region: 'kunming',
-      img: 'img/v29_spot_day2-s2_laoyu.webp', aspect: 4/3,
+      img: 'img/v32_spot_day2-s2_laoyu.webp', aspect: 4/3,
       intro: '滇池東岸嘅濕地公園，蘆葦同水杉沿湖鋪開，夕陽落入滇池嘅最佳位置之一。秋天枝葉變紅、湖面金光粼粼，係昆明本地人嘅週末打卡熱點。',
       pointers: [
         { x: 0.50, y: 0.50, label: '滇池日落', note: '黃昏金光落湖面' },
@@ -274,7 +274,7 @@ window.MAP_DATA = {
     },
     'day3-s2': {
       name: '理想邦', region: 'dali',
-      img: 'img/v29_spot_day3-s2_lixiangbang.webp', aspect: 4/3,
+      img: 'img/v32_spot_day3-s2_lixiangbang.webp', aspect: 4/3,
       intro: '洱海東岸嘅希臘式白屋藍頂建築群，係近年大理最熱嘅打卡地之一。山坡上層層疊疊嘅幾何白屋望住洱海，鏡頭一打、彷彿到咗聖托里尼。',
       pointers: [
         { x: 0.45, y: 0.45, label: '白屋藍頂', note: '希臘式建築群' },
@@ -310,7 +310,7 @@ window.MAP_DATA = {
     },
     'day4-s3': {
       name: '龍龕碼頭', region: 'dali',
-      img: 'img/v29_spot_day4-s3_longkan.webp', aspect: 4/3,
+      img: 'img/v32_spot_day4-s3_longkan.webp', aspect: 4/3,
       intro: '洱海環海路上嘅一個小漁村碼頭，木製漁船同石棧道伸入碧綠湖水，遠處蒼山十九峰一字排開。S 彎、玻璃球、心形樹係環海路最紅嘅打卡點。',
       pointers: [
         { x: 0.50, y: 0.55, label: 'S 彎碼頭', note: '木棧道伸入洱海' },
@@ -319,7 +319,7 @@ window.MAP_DATA = {
     },
     'day5-s1': {
       name: '蒼山感通索道', region: 'lijiang',
-      img: 'img/v29_spot_day5-s1_cangshan.webp', aspect: 4/3,
+      img: 'img/v32_spot_day5-s1_cangshan.webp', aspect: 4/3,
       intro: '蒼山十九峰之一，感通索道直上聖應峰，海拔 2,600 米睇大理壩子同洱海全景。沿索道升空、雲海貼住山腰，落山可步行去寂照庵。',
       pointers: [
         { x: 0.45, y: 0.40, label: '索道升空', note: '雲海貼山腰' },
@@ -382,7 +382,7 @@ window.MAP_DATA = {
     },
     'day10-s3': {
       name: '白馬雪山觀景台', region: 'shangrila',
-      img: 'img/v29_spot_day10-s3_baima.webp', aspect: 4/3,
+      img: 'img/v32_spot_day10-s3_baima.webp', aspect: 4/3,
       intro: '滇藏公路上海拔 4,292 米嘅啞口，係香格里拉去德欽必經之地。冬季積雪、夏季野花，觀景台前掛住長長嘅五色經幡，望住白馬雪山連綿主峰。',
       pointers: [
         { x: 0.45, y: 0.40, label: '4292m 啞口', note: '滇藏公路最高點' },
@@ -391,7 +391,7 @@ window.MAP_DATA = {
     },
     'day10-s4': {
       name: '霧濃頂觀景台', region: 'shangrila',
-      img: 'img/v29_spot_day10-s4_wunongding.webp', aspect: 4/3,
+      img: 'img/v32_spot_day10-s4_wunongding.webp', aspect: 4/3,
       intro: '德欽縣前往飛來寺嘅必經觀景台，與梅里雪山隔江相望。十三座白塔由低至高排開，係翌朝睇梅里日照金山嘅「副舞台」、亦係黃昏雲海大本營。',
       pointers: [
         { x: 0.45, y: 0.50, label: '十三白塔', note: '排隊望雪山' },
