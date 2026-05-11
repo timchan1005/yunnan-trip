@@ -1394,12 +1394,18 @@ function _handleFocusParam() {
     const dayN = parseInt(dayMatch[1], 10);
     const dayIdx = state.days.findIndex((d) => d.day === dayN);
     if (dayIdx < 0) return;
-    selectDay(dayIdx);
+    activeDayIdx = dayIdx;
+    renderAll();
+    // Scroll the day card into view in the drawer
+    setTimeout(() => {
+      const card = document.getElementById(`day-card-${dayIdx}`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
     // If a specific spot id is requested, find and open its popup after the map renders
     if (/^day\d+-(s\d+|h)$/.test(focus)) {
       setTimeout(() => {
         const day = state.days[dayIdx];
-        if (!day || !layerGroup) return;
+        if (!day) return;
         const spotId = focus;
         let target = null;
         if (spotId.endsWith('-h')) target = day.hotel;
@@ -1407,19 +1413,19 @@ function _handleFocusParam() {
           const m = spotId.match(/-s(\d+)$/);
           if (m) target = day.spots[parseInt(m[1], 10) - 1];
         }
-        if (target && map) {
+        if (target && map && isFinite(target.lat) && isFinite(target.lng)) {
           map.setView([target.lat, target.lng], 13, { animate: true });
           // Find a leaflet marker at that lat/lng and open its popup
-          [layerGroup, markerCluster].forEach((g) => {
+          [typeof layerGroup !== 'undefined' ? layerGroup : null, typeof markerCluster !== 'undefined' ? markerCluster : null].forEach((g) => {
             if (!g || !g.eachLayer) return;
             g.eachLayer((layer) => {
-              if (layer.getLatLng && Math.abs(layer.getLatLng().lat - target.lat) < 0.0001 && Math.abs(layer.getLatLng().lng - target.lng) < 0.0001) {
+              if (layer.getLatLng && Math.abs(layer.getLatLng().lat - target.lat) < 0.0002 && Math.abs(layer.getLatLng().lng - target.lng) < 0.0002) {
                 if (layer.openPopup) layer.openPopup();
               }
             });
           });
         }
-      }, 500);
+      }, 800);
     }
   } catch (e) { console.warn('focus param', e); }
 }
