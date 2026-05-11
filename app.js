@@ -33,6 +33,7 @@ let state;
 let activeDayIdx = -1;
 let map;
 let layerGroup;
+let markerCluster;
 let routeLine;
 let renderSeq = 0; // increments on every renderMap/renderOverview to invalidate stale async routes
 const routeCache = new Map(); // key: "lat1,lng1|lat2,lng2" -> [[lat,lng], ...]
@@ -106,6 +107,32 @@ function initMap() {
   L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
 
   layerGroup = L.layerGroup().addTo(map);
+  // Cluster group for the overview-mode spot markers (keeps the all-days view tidy)
+  markerCluster = (typeof L.markerClusterGroup === 'function')
+    ? L.markerClusterGroup({
+        showCoverageOnHover: false,
+        spiderfyOnMaxZoom: true,
+        zoomToBoundsOnClick: true,
+        maxClusterRadius: 50,
+        disableClusteringAtZoom: 11,
+        iconCreateFunction: (cluster) => {
+          const count = cluster.getChildCount();
+          // Pick the dominant day color from children
+          const colorTally = {};
+          cluster.getAllChildMarkers().forEach((m) => {
+            const c = m.options && m.options._dayColor;
+            if (c) colorTally[c] = (colorTally[c] || 0) + 1;
+          });
+          let dominant = '#d97441';
+          let best = 0;
+          Object.entries(colorTally).forEach(([c, n]) => { if (n > best) { best = n; dominant = c; } });
+          const sizeClass = count < 5 ? 'cluster-sm' : count < 12 ? 'cluster-md' : 'cluster-lg';
+          const html = `<div class="yn-cluster ${sizeClass}" style="--cl-color:${dominant}"><span class="yn-cluster-count">${count}</span><span class="yn-cluster-ring"></span></div>`;
+          return L.divIcon({ html, className: 'yn-cluster-wrap', iconSize: [44, 44] });
+        },
+      })
+    : L.layerGroup();
+  map.addLayer(markerCluster);
 
   map.on('click', (e) => {
     if (suppressNextClick) { suppressNextClick = false; return; }
@@ -451,6 +478,7 @@ function drawCasedRoute(latlngs, color, opts = {}) {
 // --- Render markers + route for selected day(s) ---
 function renderMap() {
   layerGroup.clearLayers();
+  if (markerCluster && markerCluster.clearLayers) markerCluster.clearLayers();
   if (activeDayIdx === -1) { renderOverview(); return; }
   const day = state.days[activeDayIdx];
   if (!day) return;
@@ -543,12 +571,14 @@ function renderOverview() {
       });
     }
 
-    // Spot markers
+    // Spot markers — feed into the cluster group so the overview stays tidy.
     day.spots.forEach((spot, i) => {
       const m = createMarker(spot, { color: day.color, label: String(i + 1), small: true });
+      m.options._dayColor = day.color;
       m.bindPopup(buildPopup(spot, { kind: 'spot', dayIdx, spotIdx: i }));
       m.on('click', () => m.openPopup());
-      layerGroup.addLayer(m);
+      if (markerCluster && markerCluster.addLayer) markerCluster.addLayer(m);
+      else layerGroup.addLayer(m);
       allPoints.push(projectLatLng(spot.lat, spot.lng));
     });
 
