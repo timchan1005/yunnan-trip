@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="img/yn_hero_map.webp">
-<link rel="stylesheet" href="landing.css?v=27">
+<link rel="preload" as="image" href="img/v28_overview.webp">
+<link rel="stylesheet" href="landing.css?v=28">
 </head>
 <body>
 
@@ -39,7 +39,7 @@
   <!-- Hero -->
   <section class="hero">
     <div class="hero-bg">
-      <img src="img/yn_hero_map.webp" alt="" class="hero-map">
+      <img src="img/v28_overview.webp" alt="" class="hero-map">
       <div class="hero-vignette"></div>
     </div>
     <div class="hero-content">
@@ -52,10 +52,10 @@
       <div class="hero-route">
         <span>昆明</span><i>›</i><span>大理</span><i>›</i><span>麗江</span><i>›</i><span>瀘沽湖</span><i>›</i><span>香格里拉</span>
       </div>
-      <div class="hero-scroll-hint">
-        <span>向下滑動</span>
-        <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 5 L7 10 L12 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
-      </div>
+    </div>
+    <div class="hero-scroll-hint">
+      <span>向下滑動</span>
+      <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 5 L7 10 L12 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
     </div>
   </section>
 
@@ -195,7 +195,7 @@
       <h2 class="outro-title">用兩種方式 <em>睇</em> 呢趟旅程</h2>
       <div class="outro-grid">
         <a class="outro-card outro-card-illust" href="#/map">
-          <div class="outro-card-bg" style="background-image:url('img/yn_hero_map.webp')"></div>
+          <div class="outro-card-bg" style="background-image:url('img/v28_overview.webp')"></div>
           <div class="outro-card-overlay"></div>
           <div class="outro-card-content">
             <div class="outro-card-tag">手繪 · 寫意</div>
@@ -227,25 +227,67 @@
 
 </main>
 
-<!-- ====== View: Hand-drawn map ====== -->
+<!-- ====== View: Hand-drawn map (3-level drill-down) ====== -->
 <main class="view view-map" id="view-map" hidden>
-  <div class="map-hero" id="mapHero">
-    <div class="map-stage" id="mapStage">
-      <img src="img/yn_hero_map.webp" alt="雲南手繪地圖" class="map-image" id="mapImage">
-      <div class="map-pins" id="mapPins"></div>
-    </div>
-    <aside class="map-side" id="mapSide">
-      <div class="map-side-head">
-        <div class="map-eyebrow">手繪雲南</div>
-        <h2 class="map-title">13 站 · 由南向北</h2>
-        <p class="map-hint">撳一下 pin 睇景點詳情、或者撳「互動地圖」做嗰日詳細路線同預算管理。</p>
+  <!-- Breadcrumb / back -->
+  <div class="map-crumb" id="mapCrumb">
+    <button class="crumb-back" id="crumbBack" aria-label="返回">
+      <svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3 L5 8 L10 13" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="crumbBackLabel">返回</span>
+    </button>
+    <div class="crumb-trail" id="crumbTrail"></div>
+    <div class="crumb-meta" id="crumbMeta"></div>
+  </div>
+
+  <!-- Map stage: holds 3 levels stacked, only one active -->
+  <div class="map-stage-wrap" id="mapStageWrap">
+
+    <!-- Level 0: Yunnan overview -->
+    <div class="map-level map-level-overview" data-level="overview">
+      <div class="map-canvas" id="overviewCanvas">
+        <img src="img/v28_overview.webp" alt="雲南手繪地圖" class="map-canvas-img">
+        <div class="map-labels" id="overviewLabels"></div>
       </div>
-      <div class="map-day-list" id="mapDayList"></div>
-    </aside>
+      <div class="map-caption">
+        <span class="map-caption-eyebrow">手繪雲南 · 三層地圖</span>
+        <h2 class="map-caption-title">撳一下地名，行入去</h2>
+        <p class="map-caption-sub">由總覽地圖 → 城市區 → 景點特寫，逐層放大睇</p>
+      </div>
+    </div>
+
+    <!-- Level 1: Region (city) -->
+    <div class="map-level map-level-region" data-level="region" hidden>
+      <div class="map-canvas" id="regionCanvas">
+        <img src="" alt="" class="map-canvas-img" id="regionImg">
+        <div class="map-labels" id="regionLabels"></div>
+      </div>
+      <div class="map-caption">
+        <span class="map-caption-eyebrow" id="regionEyebrow"></span>
+        <h2 class="map-caption-title" id="regionTitle"></h2>
+        <p class="map-caption-sub" id="regionSub"></p>
+      </div>
+    </div>
+
+    <!-- Level 2: Spot detail -->
+    <div class="map-level map-level-spot" data-level="spot" hidden>
+      <div class="map-canvas map-canvas-spot" id="spotCanvas">
+        <img src="" alt="" class="map-canvas-img" id="spotImg">
+        <div class="map-pointers" id="spotPointers"></div>
+      </div>
+      <div class="spot-info" id="spotInfo">
+        <span class="spot-eyebrow" id="spotEyebrow"></span>
+        <h2 class="spot-title" id="spotTitle"></h2>
+        <p class="spot-intro" id="spotIntro"></p>
+        <div class="spot-features" id="spotFeatures"></div>
+        <a class="spot-deeplink" id="spotDeeplink" href="#">睇互動地圖路線 →</a>
+      </div>
+    </div>
+
   </div>
 </main>
 
-<script src="data.js?v=26"></script>
-<script src="landing.js?v=26"></script>
+<script src="data.js?v=28"></script>
+<script src="mapdata.js?v=28"></script>
+<script src="landing.js?v=28"></script>
 </body>
 </html>

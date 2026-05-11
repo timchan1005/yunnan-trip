@@ -2636,3 +2636,46 @@ body.view-budget .fab {
       0 6px 16px rgba(0,0,0,0.4);
   }
 }
+
+/* ============ v28: map.html quick nav (back to landing / hand-drawn) ============ */
+.map-quick-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  padding: 4px;
+  background: var(--paper-2, rgba(0,0,0,0.04));
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.mqn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: background 0.18s ease, color 0.18s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mqn-link:hover { background: rgba(217, 116, 65, 0.12); color: var(--accent, #d97441); }
+.mqn-active {
+  background: var(--ink, #1c1814);
+  color: #faf2e4;
+}
+.mqn-active:hover { background: var(--ink, #1c1814); color: #faf2e4; cursor: default; }
+.mqn-link svg { flex-shrink: 0; }
+
+@media (max-width: 740px) {
+  .map-quick-nav { margin-left: 6px; gap: 2px; padding: 3px; }
+  .mqn-link { padding: 5px 8px; font-size: 11px; gap: 4px; }
+  .mqn-link span { display: none; }
+  .mqn-link svg { width: 14px; height: 14px; }
+}
+/* keep icons even on smallest screens */
