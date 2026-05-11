@@ -657,6 +657,34 @@ function renderDayRail() {
   });
 }
 
+// Haversine distance in km between two {lat, lng} points
+function _haversineKm(a, b) {
+  if (!a || !b || !isFinite(a.lat) || !isFinite(a.lng) || !isFinite(b.lat) || !isFinite(b.lng)) return 0;
+  const R = 6371;
+  const toRad = (x) => (x * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+// Estimated total straight-line km for a day's route: hotel -> spot1 -> spot2 -> ... -> hotel
+// Multiplied by 1.4 to approximate road distance.
+function _dayRouteKm(d) {
+  if (!d || !d.spots || d.spots.length === 0) return 0;
+  const points = [];
+  if (d.hotel && d.hotel.coords) points.push(d.hotel.coords);
+  d.spots.forEach((s) => { if (s.coords) points.push(s.coords); });
+  if (d.hotel && d.hotel.coords) points.push(d.hotel.coords);
+  if (points.length < 2) return 0;
+  let km = 0;
+  for (let i = 1; i < points.length; i++) {
+    km += _haversineKm(points[i - 1], points[i]);
+  }
+  return km * 1.4; // road factor
+}
+
 // --- Drawer / sidebar list ---
 function renderDrawer() {
   const body = document.getElementById('drawer-body');
@@ -665,12 +693,17 @@ function renderDrawer() {
     const card = document.createElement('div');
     card.className = 'day-card';
     card.id = `day-card-${dayIdx}`;
+    const totalKm = _dayRouteKm(d);
+    const driveMin = totalKm > 0 ? Math.round(totalKm / 60 * 60) : 0; // ~60 km/h average
+    const distLabel = totalKm > 0
+      ? `<span>約 ${totalKm.toFixed(0)} km</span><span>車程 ${driveMin >= 60 ? `${Math.floor(driveMin/60)}小時${driveMin%60 ? ` ${driveMin%60}分` : ''}` : `${driveMin}分`}</span>`
+      : '';
     card.innerHTML = `
       <div class="day-card-head">
-        <div class="day-num" style="background:${d.color}">${d.day}</div>
+        <div class="day-num" data-color="${d.color}">${d.day}</div>
         <div class="day-meta">
           <div class="day-meta-title">${escapeHTML(d.city)} · ${escapeHTML(d.date)}</div>
-          <div class="day-meta-sub">${d.spots.length} 個景點 · 入住 ${escapeHTML(d.hotel?.name || '—')}</div>
+          <div class="day-meta-sub"><span>${d.spots.length} 個景點</span>${distLabel}<span>入住 ${escapeHTML(d.hotel?.name || '—')}</span></div>
         </div>
       </div>
       <div class="day-spots"></div>
