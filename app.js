@@ -680,18 +680,25 @@ function renderOverview() {
 function createMarker(loc, opts = {}) {
   const color = opts.color || '#c1432e';
   const isHotel = opts.isHotel;
-  const label = opts.label || '';
+  // For hotels, ignore any explicit label (e.g. 'D5') and always show the home glyph,
+  // so hotel and spot pins share identical typography/shape.
+  const label = isHotel ? '' : (opts.label || '');
   const small = opts.small;
   const faded = opts.faded;
   const sizeAttr = small ? 'transform:scale(0.85);' : '';
   const opacity = faded ? 'opacity:0.55;' : '';
-  const html = `<div class="pin" style="background:${color};border-top-color:${color};${sizeAttr}${opacity}"><span>${label}</span></div>`;
+  // Hotels: solid gold pin with home icon (kept inside the circle).
+  // Spots:  day-coloured pin with the numeric step.
+  const inner = isHotel
+    ? `<svg class="pin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 3.4 10v10.4h5.6V14.6h6V20.4h5.6V10z" fill="#fff"/></svg>`
+    : `<span>${label}</span>`;
+  const html = `<div class="pin" style="background:${color};border-top-color:${color};${sizeAttr}${opacity}">${inner}</div>`;
   const icon = L.divIcon({
     className: `dot-marker ${isHotel ? 'is-hotel' : ''}`,
     html,
-    iconSize: [32, 32],
-    iconAnchor: isHotel ? [16, 16] : [15, 30],
-    popupAnchor: [0, isHotel ? -16 : -28]
+    iconSize: [32, 42],
+    iconAnchor: [15, 40],
+    popupAnchor: [0, -36]
   });
   return L.marker(projectLatLng(loc.lat, loc.lng), { icon, draggable: false });
 }
@@ -1697,6 +1704,22 @@ const CATEGORIES = {
 
 let expenses = [];
 let settings = { fxRate: 1.10, travelers: 1 };
+
+// Airport list (IATA, name, lat, lng) — relevant to this trip + HKG
+const AIRPORTS = [
+  { code: 'HKG', name: '香港國際機場',         lat: 22.3080, lng: 113.9185 },
+  { code: 'KMG', name: '昆明長水國際機場',     lat: 25.1019, lng: 102.9292 },
+  { code: 'DLU', name: '大理鳳儀機場',           lat: 25.6494, lng: 100.3194 },
+  { code: 'LJG', name: '麗江三義國際機場',     lat: 26.6800, lng: 100.2460 },
+  { code: 'DIG', name: '香格里拉迪慶機場',       lat: 27.7936, lng: 99.6772  },
+  { code: 'NLH', name: '寧蒗瀆沒湖機場',     lat: 27.5286, lng: 100.7522 },
+  { code: 'PVG', name: '上海浦東國際機場',     lat: 31.1443, lng: 121.8083 },
+  { code: 'PEK', name: '北京首都國際機場',     lat: 40.0801, lng: 116.5846 },
+  { code: 'TPE', name: '台北桃園國際機場',     lat: 25.0777, lng: 121.2328 }
+];
+function findAirport(code) {
+  return AIRPORTS.find(a => a.code === code) || null;
+}
 let activeCategory = 'all';
 let editingExpenseId = null;
 
@@ -1852,6 +1875,55 @@ function renderBudget() {
 }
 
 /* ---- Expense modal ---- */
+// Count consecutive nights at the same hotel starting from a given day number.
+function countNightsAtHotelFromDay(hotelName, startDayNum) {
+  if (!hotelName || !startDayNum) return 1;
+  const idx = state.days.findIndex(d => d.day === startDayNum);
+  if (idx < 0) return 1;
+  let nights = 0;
+  for (let i = idx; i < state.days.length; i++) {
+    if ((state.days[i].hotel && state.days[i].hotel.name) === hotelName) nights++;
+    else break;
+  }
+  return Math.max(1, nights);
+}
+
+function updateHotelFieldsVisibility() {
+  const cat = document.getElementById('e-cat').value;
+  const isHotel = cat === 'hotel';
+  const hotelFields = document.getElementById('hotel-fields');
+  const hotelSummary = document.getElementById('hotel-summary');
+  const amountLabel = document.getElementById('e-amount-label');
+  const amountInput = document.getElementById('e-amount');
+  hotelFields.classList.toggle('hotel-hidden', !isHotel);
+  hotelSummary.classList.toggle('hotel-hidden', !isHotel);
+  if (isHotel) {
+    amountLabel.textContent = '總金額（自動）';
+    amountInput.readOnly = true;
+    amountInput.classList.add('input-readonly');
+    updateHotelTotal();
+  } else {
+    amountLabel.textContent = '金額';
+    amountInput.readOnly = false;
+    amountInput.classList.remove('input-readonly');
+  }
+}
+function updateHotelTotal() {
+  const rate = parseFloat(document.getElementById('e-rate').value) || 0;
+  const rooms = parseInt(document.getElementById('e-rooms').value, 10) || 1;
+  const nights = parseInt(document.getElementById('e-nights').value, 10) || 1;
+  const total = rate * rooms * nights;
+  document.getElementById('e-amount').value = total ? total.toFixed(2) : '';
+  const currency = document.getElementById('e-currency').value;
+  const symbol = currency === 'CNY' ? '¥' : currency === 'HKD' ? 'HK$' : 'US$';
+  const summary = document.getElementById('hotel-summary');
+  if (rate > 0) {
+    summary.innerHTML = `${symbol}${fmt(rate)}/晚 × ${nights} 晚 × ${rooms} 房 = <strong>${symbol}${fmt(total)}</strong>`;
+  } else {
+    summary.innerHTML = '<span style="opacity:.55">填房價後自動計算總費</span>';
+  }
+}
+
 function openExpenseModal(id = null) {
   editingExpenseId = id;
   const modal = document.getElementById('expense-modal');
@@ -1875,6 +1947,20 @@ function openExpenseModal(id = null) {
     document.getElementById('e-status').value = x.status;
     document.getElementById('e-method').value = x.method || '';
     document.getElementById('e-note').value = x.note || '';
+    // Hotel-specific fields
+    if (x.category === 'hotel') {
+      const inferredNights = countNightsAtHotelFromDay(x.name, x.day);
+      const rooms = x.rooms || 1;
+      const nights = x.nights || inferredNights;
+      const rate = x.roomRate || (x.amount && rooms && nights ? x.amount / rooms / nights : '');
+      document.getElementById('e-rate').value = rate || '';
+      document.getElementById('e-rooms').value = rooms;
+      document.getElementById('e-nights').value = nights;
+    } else {
+      document.getElementById('e-rate').value = '';
+      document.getElementById('e-rooms').value = 1;
+      document.getElementById('e-nights').value = 1;
+    }
     delBtn.style.display = '';
   } else {
     title.textContent = '新增開支';
@@ -1886,8 +1972,12 @@ function openExpenseModal(id = null) {
     document.getElementById('e-status').value = 'unpaid';
     document.getElementById('e-method').value = '';
     document.getElementById('e-note').value = '';
+    document.getElementById('e-rate').value = '';
+    document.getElementById('e-rooms').value = 1;
+    document.getElementById('e-nights').value = 1;
     delBtn.style.display = 'none';
   }
+  updateHotelFieldsVisibility();
   modal.hidden = false;
 }
 function closeExpenseModal() {
@@ -1896,19 +1986,37 @@ function closeExpenseModal() {
 }
 function saveExpense() {
   const name = document.getElementById('e-name').value.trim();
-  const amount = parseFloat(document.getElementById('e-amount').value);
+  const category = document.getElementById('e-cat').value;
   if (!name) return toast('請輸入名稱');
-  if (isNaN(amount) || amount < 0) return toast('請輸入有效金額');
+
+  let amount;
+  let hotelExtras = {};
+  if (category === 'hotel') {
+    const rate = parseFloat(document.getElementById('e-rate').value);
+    const rooms = parseInt(document.getElementById('e-rooms').value, 10) || 1;
+    const nights = parseInt(document.getElementById('e-nights').value, 10) || 1;
+    if (isNaN(rate) || rate < 0) return toast('請輸入每晚房價');
+    if (rooms < 1) return toast('房數至少 1');
+    if (nights < 1) return toast('晚數至少 1');
+    amount = rate * rooms * nights;
+    hotelExtras = { roomRate: rate, rooms, nights };
+  } else {
+    amount = parseFloat(document.getElementById('e-amount').value);
+    if (isNaN(amount) || amount < 0) return toast('請輸入有效金額');
+    // Clear any stale hotel fields if user re-categorized away from hotel
+    hotelExtras = { roomRate: null, rooms: null, nights: null };
+  }
 
   const data = {
     name,
-    category: document.getElementById('e-cat').value,
+    category,
     day: parseInt(document.getElementById('e-day').value, 10) || null,
     amount,
     currency: document.getElementById('e-currency').value,
     status: document.getElementById('e-status').value,
     method: document.getElementById('e-method').value.trim(),
-    note: document.getElementById('e-note').value.trim()
+    note: document.getElementById('e-note').value.trim(),
+    ...hotelExtras
   };
 
   if (editingExpenseId) {
