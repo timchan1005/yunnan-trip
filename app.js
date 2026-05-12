@@ -1915,7 +1915,10 @@ function renderBudget() {
   // v43: category breakdown in HKD
   const byCat = {};
   Object.keys(CATEGORIES).forEach(k => byCat[k] = 0);
-  expenses.forEach(x => { byCat[x.category] = (byCat[x.category] || 0) + toHKD(x.amount, x.currency, x.fxRate); });
+  expenses.forEach(x => {
+    const k = x.category && CATEGORIES[x.category] ? x.category : 'other';
+    byCat[k] = (byCat[k] || 0) + toHKD(x.amount, x.currency, x.fxRate);
+  });
 
   const bar = document.getElementById('breakdown-bar');
   const legend = document.getElementById('breakdown-legend');
