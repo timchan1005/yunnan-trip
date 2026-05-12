@@ -3673,6 +3673,7 @@ body.driver-mode .brand-title::after {
   .layer-toggle,
   .fab,
   .drawer-toggle,
+  #btn-close-drawer,
   .modal,
   .global-search-overlay,
   .day-rail-wrap,
