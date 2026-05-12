@@ -124,27 +124,28 @@ input, select, textarea { font-family: inherit; font-size: 16px; /* prevent iOS 
   max-width: 100%;
 }
 .day-rail::-webkit-scrollbar { display: none; }
-.day-rail-wrap::before {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 0;
-  left: 0;
-  width: 24px;
-  background: linear-gradient(to right, rgba(250, 247, 242, 0.95), transparent);
-  pointer-events: none;
-  z-index: 1;
+/* Desktop only: subtle edge fades on the rail itself to hint at scrollable chips */
+@media (min-width: 721px) {
+  .day-rail-wrap::before,
+  .day-rail-wrap::after {
+    content: '';
+    position: absolute;
+    top: 12px;
+    height: 44px;
+    width: 24px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .day-rail-wrap::before {
+    left: 14px;
+    background: linear-gradient(to right, rgba(250, 247, 242, 0.9), transparent);
+  }
+  .day-rail-wrap::after {
+    right: 14px;
+    background: linear-gradient(to left, rgba(250, 247, 242, 0.9), transparent);
+  }
 }
-.day-rail-wrap::after {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 0;
-  right: 0;
-  width: 36px;
-  background: linear-gradient(to left, rgba(250, 247, 242, 0.95), transparent);
-  pointer-events: none;
-  z-index: 1;
-}
-/* Phone tweaks: flush-left, smaller padding for native momentum scrolling */
+/* Phone: flush-left, smaller padding; no edge fades (would collide with map tiles) */
 @media (max-width: 720px) {
   .day-rail {
     touch-action: pan-x;
@@ -1719,12 +1720,14 @@ body.view-budget .fab {
     color: #14171d;
   }
 
-  /* Day-rail edge fades — match dark surface, not light cream */
-  .day-rail-wrap::before {
-    background: linear-gradient(to right, rgba(15, 17, 21, 0.95), transparent);
-  }
-  .day-rail-wrap::after {
-    background: linear-gradient(to left, rgba(15, 17, 21, 0.95), transparent);
+  /* Day-rail edge fades — dark surface tint to match topbar */
+  @media (min-width: 721px) {
+    .day-rail-wrap::before {
+      background: linear-gradient(to right, rgba(15, 17, 21, 0.92), transparent);
+    }
+    .day-rail-wrap::after {
+      background: linear-gradient(to left, rgba(15, 17, 21, 0.92), transparent);
+    }
   }
 
   /* Mobile day-picker trigger — invert white background to dark */
