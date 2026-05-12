@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=42">
+<link rel="stylesheet" href="style.css?v=43">
 </head>
 <body>
 
@@ -189,8 +189,8 @@
           <div class="settings-row">
             <label class="inline-field">
               <span>匯率</span>
-              <input type="number" step="0.0001" id="fx-rate" value="1.10" title="1 CNY = ? HKD">
-              <span class="unit">HKD/CNY</span>
+              <input type="number" step="0.0001" id="fx-rate" value="0.91" title="1 HKD = ? CNY">
+              <span class="unit">CNY/HKD</span>
             </label>
             <label class="inline-field">
               <span>人數</span>
@@ -410,12 +410,23 @@
         <label class="field">
           <span>幣種</span>
           <select id="e-currency">
-            <option value="CNY">CNY 人民幣</option>
             <option value="HKD">HKD 港幣</option>
+            <option value="CNY">CNY 人民幣</option>
             <option value="USD">USD 美元</option>
           </select>
         </label>
       </div>
+      <!-- v43: per-expense locked FX rate (only shown when currency != HKD) -->
+      <div class="field-row fx-lock-row" id="fx-lock-row">
+        <label class="field">
+          <span>鎖定匯率（每 1 HKD = ? 原幣）</span>
+          <input type="number" step="0.0001" id="e-fxlock" placeholder="留空＝跟全局" inputmode="decimal">
+        </label>
+        <div class="field fx-lock-hint-wrap">
+          <span class="fx-lock-hint" id="fx-lock-hint">買機票／訂酒店嗰陣嘅匯率，鎖咗就唔會跟住全局匯率浮動。</span>
+        </div>
+      </div>
+      <div class="fx-converted-summary" id="fx-converted-summary" aria-live="polite"></div>
       <div class="hotel-summary hotel-hidden" id="hotel-summary" aria-live="polite"></div>
       <div class="field-row">
         <label class="field">
@@ -473,7 +484,7 @@
 <script src="data.js?v=29"></script>
 <script src="s2t.js?v=29"></script>
 <script src="sync.js?v=29"></script>
-<script src="app.js?v=42"></script>
+<script src="app.js?v=43"></script>
 
 </body>
 </html>

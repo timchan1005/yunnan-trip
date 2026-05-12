@@ -1732,7 +1732,9 @@ const CATEGORIES = {
 };
 
 let expenses = [];
-let settings = { fxRate: 1.10, travelers: 1 };
+// v43: fxRate now means "1 HKD = ? CNY" (~0.91). Was previously HKD/CNY (~1.10).
+// We migrate on load: any saved rate > 2 is treated as the old HKD/CNY rate and inverted.
+let settings = { fxRate: 0.91, travelers: 1 };
 
 // Airport list (IATA, name, lat, lng) — relevant to this trip + HKG
 const AIRPORTS = [
@@ -1761,6 +1763,22 @@ function loadBudget() {
     const s = safeStorage.getItem(SETTINGS_KEY);
     if (s) settings = { ...settings, ...JSON.parse(s) };
   } catch (_) {}
+  // v43 migration: old fxRate semantics were "HKD per CNY" (~1.10).
+  // New semantics are "CNY per HKD" (~0.91). If we still see an old-style
+  // value > 2, invert it once and persist.
+  if (settings.fxRate && settings.fxRate > 2) {
+    settings.fxRate = +(1 / settings.fxRate).toFixed(4);
+    try { saveSettings(); } catch (_) {}
+  }
+  // v43 expense migration: older items may have a CNY amount with no
+  // currency stamped, or no fxRate locked. Backfill defaults so totals are
+  // computed consistently across old + new entries.
+  let migrated = false;
+  expenses.forEach(x => {
+    if (!x.currency) { x.currency = 'CNY'; migrated = true; }
+    if (x.fxRate === undefined) { x.fxRate = null; migrated = true; }
+  });
+  if (migrated) { try { saveBudget(); } catch (_) {} }
 }
 function saveBudget() {
   scheduleCloudSync();
@@ -1776,15 +1794,32 @@ function scheduleCloudSync() {
   try { window.cloudSync && window.cloudSync.scheduleSync(); } catch (_) {}
 }
 
-function toCNY(amount, currency) {
+// v43: HKD-based conversion. lockedRate (CNY per HKD) overrides global when set.
+// Examples:
+//   toHKD(1100, 'CNY')         -> 1100 / 0.91 ≈ 1209 HKD (using global rate)
+//   toHKD(1100, 'CNY', 0.93)   -> 1100 / 0.93 ≈ 1183 HKD (using locked rate)
+//   toHKD(800,  'HKD')         -> 800  (no conversion)
+//   toHKD(100,  'USD')         -> 100 * 7.8 ≈ 780 HKD (USD -> HKD approx)
+function toHKD(amount, currency, lockedRate) {
   const a = parseFloat(amount) || 0;
-  if (currency === 'CNY') return a;
-  if (currency === 'HKD') return a / settings.fxRate;          // HKD -> CNY
-  if (currency === 'USD') return a * 7.0 / settings.fxRate;    // USD -> HKD -> CNY (approx)
+  if (!currency || currency === 'HKD') return a;
+  if (currency === 'CNY') {
+    const rate = (lockedRate && lockedRate > 0) ? lockedRate : settings.fxRate;
+    return a / rate;
+  }
+  if (currency === 'USD') return a * 7.8;
   return a;
 }
-function toHKD(amount, currency) {
-  return toCNY(amount, currency) * settings.fxRate;
+// Kept for legacy use by hotel/flight breakdown rendering.
+function toCNY(amount, currency, lockedRate) {
+  const a = parseFloat(amount) || 0;
+  if (currency === 'CNY') return a;
+  if (currency === 'HKD') {
+    const rate = (lockedRate && lockedRate > 0) ? lockedRate : settings.fxRate;
+    return a * rate;
+  }
+  if (currency === 'USD') return a * 7.8 * settings.fxRate;
+  return a;
 }
 function fmt(n, suffix = '') {
   return new Intl.NumberFormat('zh-HK', { maximumFractionDigits: 0 }).format(Math.round(n)) + suffix;
@@ -1814,40 +1849,42 @@ function renderBudget() {
   document.getElementById('fx-rate').value = settings.fxRate;
   document.getElementById('travelers').value = settings.travelers;
 
-  // totals (in CNY base)
-  const totalCNY  = expenses.reduce((s, x) => s + toCNY(x.amount, x.currency), 0);
-  const paidCNY   = expenses.filter(x => x.status === 'paid').reduce((s, x) => s + toCNY(x.amount, x.currency), 0);
-  const unpaidCNY = expenses.filter(x => x.status !== 'paid').reduce((s, x) => s + toCNY(x.amount, x.currency), 0);
+  // v43: totals are in HKD base. Each expense converts using its locked
+  // rate (x.fxRate) when present, otherwise the global rate.
+  const totalHKD  = expenses.reduce((s, x) => s + toHKD(x.amount, x.currency, x.fxRate), 0);
+  const paidHKD   = expenses.filter(x => x.status === 'paid').reduce((s, x) => s + toHKD(x.amount, x.currency, x.fxRate), 0);
+  const unpaidHKD = expenses.filter(x => x.status !== 'paid').reduce((s, x) => s + toHKD(x.amount, x.currency, x.fxRate), 0);
+  const totalCNY  = totalHKD * settings.fxRate;
   const days = state.days.length;
-  const avg = days > 0 && settings.travelers > 0 ? totalCNY / days / settings.travelers : 0;
+  const avg = days > 0 && settings.travelers > 0 ? totalHKD / days / settings.travelers : 0;
 
-  document.getElementById('sum-total').textContent      = '¥' + fmt(totalCNY);
-  document.getElementById('sum-total-hkd').textContent  = '≈ HK$' + fmt(totalCNY * settings.fxRate);
-  document.getElementById('sum-paid').textContent       = '¥' + fmt(paidCNY);
-  document.getElementById('sum-unpaid').textContent     = '¥' + fmt(unpaidCNY);
-  document.getElementById('sum-avg').textContent        = '¥' + fmt(avg);
+  document.getElementById('sum-total').textContent      = 'HK$' + fmt(totalHKD);
+  document.getElementById('sum-total-hkd').textContent  = '≈ ¥' + fmt(totalCNY);
+  document.getElementById('sum-paid').textContent       = 'HK$' + fmt(paidHKD);
+  document.getElementById('sum-unpaid').textContent     = 'HK$' + fmt(unpaidHKD);
+  document.getElementById('sum-avg').textContent        = 'HK$' + fmt(avg);
 
-  // category breakdown
+  // v43: category breakdown in HKD
   const byCat = {};
   Object.keys(CATEGORIES).forEach(k => byCat[k] = 0);
-  expenses.forEach(x => { byCat[x.category] = (byCat[x.category] || 0) + toCNY(x.amount, x.currency); });
+  expenses.forEach(x => { byCat[x.category] = (byCat[x.category] || 0) + toHKD(x.amount, x.currency, x.fxRate); });
 
   const bar = document.getElementById('breakdown-bar');
   const legend = document.getElementById('breakdown-legend');
-  if (totalCNY > 0) {
+  if (totalHKD > 0) {
     const segs = Object.entries(byCat)
       .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1]);
     bar.innerHTML = segs.map(([k, v]) =>
-      `<div style="background:${CATEGORIES[k].color};width:${(v / totalCNY * 100).toFixed(2)}%"
-            title="${CATEGORIES[k].label} ¥${fmt(v)}"></div>`
+      `<div style="background:${CATEGORIES[k].color};width:${(v / totalHKD * 100).toFixed(2)}%"
+            title="${CATEGORIES[k].label} HK$${fmt(v)}"></div>`
     ).join('');
     legend.innerHTML = segs.map(([k, v]) =>
       `<span class="legend-item">
          <span class="legend-swatch" style="background:${CATEGORIES[k].color}"></span>
          ${CATEGORIES[k].label}
-         <span class="legend-amt">¥${fmt(v)}</span>
-         <span style="color:var(--ink-3);font-size:11px;">${(v / totalCNY * 100).toFixed(0)}%</span>
+         <span class="legend-amt">HK$${fmt(v)}</span>
+         <span style="color:var(--ink-3);font-size:11px;">${(v / totalHKD * 100).toFixed(0)}%</span>
        </span>`
     ).join('');
   } else {
@@ -1877,9 +1914,9 @@ function renderBudget() {
     const cat = CATEGORIES[x.category] || CATEGORIES.other;
     const dayInfo = x.day ? `<span class="day-tag">Day ${x.day}</span>` : '';
     const statusLabel = { paid: '已付', unpaid: '未付', pending: '待確認' }[x.status] || '';
-    const cny = toCNY(x.amount, x.currency);
-    const hkd = cny * settings.fxRate;
-    const showDual = x.currency !== 'CNY';
+    // v43: primary HKD, secondary native currency.
+    const hkd = toHKD(x.amount, x.currency, x.fxRate);
+    const showNative = x.currency && x.currency !== 'HKD';
     // Category-specific detail line (hotel breakdown, flight legs)
     let detail = '';
     if (x.category === 'hotel' && x.roomRate && x.nights && x.rooms) {
@@ -1915,8 +1952,8 @@ function renderBudget() {
         </div>
       </div>
       <div>
-        <div class="expense-amt">${x.currency === 'CNY' ? '¥' : x.currency === 'HKD' ? 'HK$' : 'US$'}${fmt(x.amount)}</div>
-        <div class="expense-amt-sub">${showDual ? '≈ ¥' + fmt(cny) + ' / HK$' + fmt(hkd) : '≈ HK$' + fmt(hkd)}</div>
+        <div class="expense-amt">HK$${fmt(hkd)}</div>
+        <div class="expense-amt-sub">${showNative ? '原幣 ' + (x.currency === 'CNY' ? '¥' : x.currency === 'HKD' ? 'HK$' : 'US$') + fmt(x.amount) + (x.fxRate ? ' · 鎖 ' + (+x.fxRate).toFixed(4) : '') : ''}</div>
       </div>
     </div>`;
   }).join('');
@@ -1974,6 +2011,8 @@ function updateHotelTotal() {
   } else {
     summary.innerHTML = '<span style="opacity:.55">填房價後自動計算總費</span>';
   }
+  // v43: also refresh the HKD-equivalent preview line below
+  try { updateFxConvertedSummary(); } catch (_) {}
 }
 
 /* ---------- Flight (multi-leg) ---------- */
@@ -2076,7 +2115,8 @@ function openExpenseModal(id = null) {
     document.getElementById('e-cat').value = x.category;
     document.getElementById('e-day').value = x.day || '';
     document.getElementById('e-amount').value = x.amount;
-    document.getElementById('e-currency').value = x.currency;
+    document.getElementById('e-currency').value = x.currency || 'HKD';
+    document.getElementById('e-fxlock').value = x.fxRate || '';
     document.getElementById('e-status').value = x.status;
     document.getElementById('e-method').value = x.method || '';
     document.getElementById('e-note').value = x.note || '';
@@ -2113,7 +2153,8 @@ function openExpenseModal(id = null) {
     document.getElementById('e-cat').value = 'hotel';
     document.getElementById('e-day').value = '';
     document.getElementById('e-amount').value = '';
-    document.getElementById('e-currency').value = 'CNY';
+    document.getElementById('e-currency').value = 'HKD';
+    document.getElementById('e-fxlock').value = '';
     document.getElementById('e-status').value = 'unpaid';
     document.getElementById('e-method').value = '';
     document.getElementById('e-note').value = '';
@@ -2126,7 +2167,45 @@ function openExpenseModal(id = null) {
   }
   updateHotelFieldsVisibility();
   updateFlightFieldsVisibility();
+  updateFxLockVisibility();
+  updateFxConvertedSummary();
   modal.hidden = false;
+}
+
+// v43: hide locked-rate row when currency = HKD (no conversion needed).
+function updateFxLockVisibility() {
+  const cur = document.getElementById('e-currency').value;
+  const row = document.getElementById('fx-lock-row');
+  if (row) row.classList.toggle('fx-hidden', cur === 'HKD');
+  updateFxConvertedSummary();
+}
+
+// v43: live preview of HKD-equivalent amount in modal
+function updateFxConvertedSummary() {
+  const box = document.getElementById('fx-converted-summary');
+  if (!box) return;
+  const cur = document.getElementById('e-currency').value;
+  const amtEl = document.getElementById('e-amount');
+  const rateEl = document.getElementById('e-fxlock');
+  // For hotel category, amount is auto-computed; read room rate * rooms * nights.
+  let amount = parseFloat(amtEl ? amtEl.value : '0') || 0;
+  if (document.getElementById('e-cat').value === 'hotel') {
+    const rate = parseFloat(document.getElementById('e-rate').value) || 0;
+    const rooms = parseInt(document.getElementById('e-rooms').value, 10) || 1;
+    const nights = parseInt(document.getElementById('e-nights').value, 10) || 1;
+    amount = rate * rooms * nights;
+  }
+  if (!amount || cur === 'HKD') {
+    box.textContent = '';
+    box.classList.remove('visible');
+    return;
+  }
+  const lock = parseFloat(rateEl.value);
+  const hkd = toHKD(amount, cur, lock > 0 ? lock : null);
+  const sym = cur === 'CNY' ? '¥' : 'US$';
+  const rateLabel = lock > 0 ? `鎖定 ${lock.toFixed(4)}` : `全局 ${settings.fxRate.toFixed(4)}`;
+  box.textContent = `${sym}${fmt(amount)} ≈ HK$${fmt(hkd)} · ${rateLabel} CNY/HKD`;
+  box.classList.add('visible');
 }
 function closeExpenseModal() {
   document.getElementById('expense-modal').hidden = true;
@@ -2164,12 +2243,15 @@ function saveExpense() {
     if (isNaN(amount) || amount < 0) return toast('請輸入有效金額');
   }
 
+  // v43: persist locked FX rate per expense (null = follow global)
+  const fxLockVal = parseFloat(document.getElementById('e-fxlock').value);
   const data = {
     name,
     category,
     day: parseInt(document.getElementById('e-day').value, 10) || null,
     amount,
     currency: document.getElementById('e-currency').value,
+    fxRate: (fxLockVal > 0) ? fxLockVal : null,
     status: document.getElementById('e-status').value,
     method: document.getElementById('e-method').value.trim(),
     note: document.getElementById('e-note').value.trim(),
@@ -2223,6 +2305,7 @@ function seedHotels() {
           day: d.day,
           amount: 0,
           currency: 'CNY',
+          fxRate: null, // v43: follow global rate by default
           status: 'unpaid',
           method: '',
           note: `Day ${d.day} 入住`
@@ -2285,7 +2368,15 @@ function wireBudget() {
   document.getElementById('e-cat').addEventListener('change', () => {
     updateHotelFieldsVisibility();
     updateFlightFieldsVisibility();
+    updateFxConvertedSummary();
   });
+  // v43: currency + locked-rate wiring
+  document.getElementById('e-currency').addEventListener('change', () => {
+    updateFxLockVisibility();
+    updateFxConvertedSummary();
+  });
+  document.getElementById('e-fxlock').addEventListener('input', updateFxConvertedSummary);
+  document.getElementById('e-amount').addEventListener('input', updateFxConvertedSummary);
   // Hotel live total
   ['e-rate','e-rooms','e-nights','e-currency'].forEach(id => {
     const el = document.getElementById(id);
