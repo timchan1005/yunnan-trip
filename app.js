@@ -620,6 +620,11 @@ function installCollisionListeners() {
 // --- Overview: all days, all locations ---
 function renderOverview() {
   ++renderSeq;
+  // v42 fix: clear existing layers so repeated calls (e.g. after saveExpense /
+  // deleteExpense) don't stack markers and flight lines, which made cluster
+  // counts (56, 84) far exceed the real spot+hotel total (~51).
+  if (layerGroup && layerGroup.clearLayers) layerGroup.clearLayers();
+  if (markerCluster && markerCluster.clearLayers) markerCluster.clearLayers();
   const allPoints = [];
   const seenHotelKeys = new Set();
 
