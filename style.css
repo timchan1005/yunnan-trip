@@ -3039,3 +3039,286 @@ body.view-budget .fab {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }
+
+/* ============================================================
+   v44: Budget vs Actual + Daily Burn + Sanity Check
+   ============================================================ */
+
+/* Shared card chrome */
+.bva-card, .burn-card, .sanity-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin: 14px 0;
+}
+@media (max-width: 600px) {
+  .bva-card, .burn-card, .sanity-card { padding: 14px; }
+}
+
+/* ----- Budget vs Actual ----- */
+.bva-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.bva-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.bva-overall {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.bva-overall strong { color: var(--ink-1); margin: 0 2px; }
+.bva-overall.bva-over { color: #c1432e; }
+
+.bva-grid-head, .bva-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 90px 90px 110px;
+  align-items: center;
+  gap: 10px;
+}
+.bva-grid-head {
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 4px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.bva-row {
+  padding: 8px 4px;
+  font-size: 13px;
+  border-bottom: 1px dashed rgba(0,0,0,0.05);
+}
+.bva-row:last-of-type { border-bottom: 0; }
+
+.bva-cat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+.bva-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.bva-bar {
+  position: relative;
+  height: 8px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bva-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+.bva-over-fill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    #c1432e, #c1432e 4px,
+    rgba(193,67,46,0.65) 4px, rgba(193,67,46,0.65) 8px
+  );
+}
+
+.bva-cap-input {
+  width: 86px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  background: transparent;
+  color: var(--ink-1);
+}
+.bva-actual, .bva-remain {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.bva-remain { font-size: 12px; color: var(--ink-2); }
+.bva-row.bva-warn .bva-remain { color: #b07a00; }
+.bva-row.bva-over .bva-remain { color: #c1432e; font-weight: 600; }
+
+.bva-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+@media (max-width: 640px) {
+  .bva-grid-head { display: none; }
+  .bva-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "cat actual"
+      "bar bar"
+      "cap remain";
+    row-gap: 6px;
+  }
+  .bva-cat { grid-area: cat; }
+  .bva-bar { grid-area: bar; }
+  .bva-cap { grid-area: cap; justify-self: start; }
+  .bva-actual { grid-area: actual; font-weight: 600; }
+  .bva-remain { grid-area: remain; }
+}
+
+/* ----- Daily burn chart ----- */
+.burn-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.burn-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.burn-meta {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.burn-chart {
+  position: relative;
+  display: flex;
+  align-items: end;
+  gap: 6px;
+  height: 180px;
+  padding: 0 4px;
+}
+.burn-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: 100%;
+}
+.burn-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+}
+.burn-bar {
+  width: 100%;
+  max-width: 28px;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  min-height: 2px;
+  background: rgba(0,0,0,0.05);
+}
+.burn-bar > div:first-child { border-radius: 4px 4px 0 0; }
+.burn-amt {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.burn-day {
+  font-size: 10px;
+  color: var(--ink-2);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.burn-avg-line {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  border-top: 1px dashed rgba(193,67,46,0.55);
+  pointer-events: none;
+  z-index: 2;
+}
+.burn-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+@media (max-width: 480px) {
+  .burn-chart { height: 150px; gap: 3px; }
+  .burn-amt { display: none; }
+}
+
+/* ----- Sanity check ----- */
+.sanity-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.sanity-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.sanity-count, .sanity-clean {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.sanity-clean { color: #2a9d8f; }
+.sanity-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px dashed rgba(0,0,0,0.05);
+}
+.sanity-row:last-child { border-bottom: 0; }
+.sanity-day-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  background: rgba(0,0,0,0.05);
+  color: var(--ink-2);
+  text-align: center;
+  white-space: nowrap;
+}
+.sanity-row.level-warn .sanity-day-pill {
+  background: rgba(232,164,68,0.16);
+  color: #8d5524;
+}
+.sanity-row.level-alt .sanity-day-pill {
+  background: rgba(193,67,46,0.13);
+  color: #c1432e;
+}
+.sanity-msg { color: var(--ink-1); line-height: 1.55; }
+.sanity-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+@media (max-width: 480px) {
+  .sanity-row { grid-template-columns: 1fr; gap: 4px; }
+  .sanity-day-pill { justify-self: start; }
+}

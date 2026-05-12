@@ -1734,7 +1734,39 @@ const CATEGORIES = {
 let expenses = [];
 // v43: fxRate now means "1 HKD = ? CNY" (~0.91). Was previously HKD/CNY (~1.10).
 // We migrate on load: any saved rate > 2 is treated as the old HKD/CNY rate and inverted.
-let settings = { fxRate: 0.91, travelers: 1 };
+// v44: caps[] holds per-category budget ceilings in HKD.
+const DEFAULT_BUDGET_CAPS = {
+  hotel:     30000,
+  flight:    6000,
+  transport: 8000,
+  food:      4000,
+  activity:  3000,
+  shopping:  5000,
+  other:     2000
+};
+let settings = {
+  fxRate: 0.91,
+  travelers: 1,
+  caps: { ...DEFAULT_BUDGET_CAPS }
+};
+
+// v44: rough altitude (m) per day for the Yunnan itinerary, used by sanity check
+// and (later) altitude curve. Day numbers match state.days[].day.
+const DAY_ALTITUDE = {
+  1: 1900,  // 昆明
+  2: 1900,  // 昆明
+  3: 2000,  // 大理
+  4: 2000,  // 大理
+  5: 2400,  // 麗江
+  6: 3200,  // 玉龍雪山及索道 (雲杉坪 3,240m)
+  7: 2690,  // 瀘沽湖
+  8: 2690,  // 瀘沽湖 -> 麗江
+  9: 3200,  // 香格里拉
+  10: 3400, // 松贊林寺 -> 霧濃頂
+  11: 3500, // 飛來寺觀景台
+  12: 4290, // 普達措國家森林公園 (高原湖泊)
+  13: 3200  // 香格里拉 -> 飛機
+};
 
 // Airport list (IATA, name, lat, lng) — relevant to this trip + HKG
 const AIRPORTS = [
@@ -1770,6 +1802,11 @@ function loadBudget() {
     settings.fxRate = +(1 / settings.fxRate).toFixed(4);
     try { saveSettings(); } catch (_) {}
   }
+  // v44 migration: ensure caps object exists with all known categories
+  if (!settings.caps) settings.caps = { ...DEFAULT_BUDGET_CAPS };
+  Object.keys(DEFAULT_BUDGET_CAPS).forEach(k => {
+    if (settings.caps[k] === undefined) settings.caps[k] = DEFAULT_BUDGET_CAPS[k];
+  });
   // v43 expense migration: older items may have a CNY amount with no
   // currency stamped, or no fxRate locked. Backfill defaults so totals are
   // computed consistently across old + new entries.
@@ -1892,6 +1929,11 @@ function renderBudget() {
     legend.innerHTML = '<span class="legend-item" style="color:var(--ink-3)">尚無資料</span>';
   }
 
+  // v44: budget vs actual + daily burn rate
+  renderBudgetVsActual(byCat);
+  renderDailyBurnChart();
+  renderItinerarySanity();
+
   // category filter buttons
   document.querySelectorAll('.cat-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.cat === activeCategory);
@@ -1961,6 +2003,193 @@ function renderBudget() {
   list.querySelectorAll('.expense-row').forEach(row => {
     row.addEventListener('click', () => openExpenseModal(row.dataset.id));
   });
+}
+
+/* =========================================================
+   v44: Budget vs Actual + Daily Burn Rate + Sanity Check
+   ========================================================= */
+
+// Build a table comparing each category's cap vs actual HKD spent.
+function renderBudgetVsActual(byCat) {
+  const wrap = document.getElementById('budget-vs-actual');
+  if (!wrap) return;
+  const caps = settings.caps || DEFAULT_BUDGET_CAPS;
+  const order = ['hotel', 'flight', 'transport', 'food', 'activity', 'shopping', 'other'];
+  let totalCap = 0;
+  let totalActual = 0;
+  const rows = order.map(k => {
+    const cap = +caps[k] || 0;
+    const actual = +byCat[k] || 0;
+    totalCap += cap;
+    totalActual += actual;
+    const pct = cap > 0 ? Math.min(actual / cap, 1.5) : 0;
+    const isOver = cap > 0 && actual > cap;
+    const isWarn = cap > 0 && actual >= cap * 0.8 && actual <= cap;
+    const cls = isOver ? 'bva-over' : isWarn ? 'bva-warn' : 'bva-ok';
+    const remaining = cap - actual;
+    const remainingTxt = cap === 0 ? '未設上限' :
+      isOver ? `超支 HK$${fmt(actual - cap)}` :
+      `餘 HK$${fmt(remaining)}`;
+    return `
+      <div class="bva-row ${cls}">
+        <div class="bva-cat">
+          <span class="bva-dot" style="background:${CATEGORIES[k].color}"></span>
+          ${CATEGORIES[k].label}
+        </div>
+        <div class="bva-bar">
+          <div class="bva-fill" style="width:${Math.min(pct, 1) * 100}%; background:${CATEGORIES[k].color}"></div>
+          ${pct > 1 ? `<div class="bva-over-fill" style="width:${Math.min((pct - 1) / 0.5, 1) * 100}%"></div>` : ''}
+        </div>
+        <div class="bva-cap">
+          <input type="number" class="bva-cap-input" data-cat="${k}" value="${cap}" min="0" step="100" aria-label="${CATEGORIES[k].label} 預算上限">
+        </div>
+        <div class="bva-actual">HK$${fmt(actual)}</div>
+        <div class="bva-remain">${remainingTxt}</div>
+      </div>`;
+  }).join('');
+  const overall = totalCap > 0 ? totalActual / totalCap : 0;
+  const overallTxt = totalCap === 0 ? '未設總預算' :
+    totalActual > totalCap ? `全局超支 HK$${fmt(totalActual - totalCap)}` :
+    `還餘 HK$${fmt(totalCap - totalActual)}`;
+  wrap.innerHTML = `
+    <div class="bva-header">
+      <h3>預算 vs 實際</h3>
+      <div class="bva-overall ${totalActual > totalCap ? 'bva-over' : ''}">
+        總使用 <strong>${Math.round(overall * 100)}%</strong> · ${overallTxt}
+      </div>
+    </div>
+    <div class="bva-grid-head">
+      <span>分類</span><span></span><span>上限</span><span>實際</span><span>餘額</span>
+    </div>
+    ${rows}
+    <div class="bva-note">以港幣計。「上限」欄可隨時調整。</div>
+  `;
+  // Wire up cap inputs
+  wrap.querySelectorAll('.bva-cap-input').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const cat = e.target.dataset.cat;
+      const v = parseInt(e.target.value, 10);
+      if (cat && v >= 0) {
+        settings.caps[cat] = v;
+        saveSettings();
+        renderBudget();
+      }
+    });
+  });
+}
+
+// Daily HKD spend chart (stacked by category)
+function renderDailyBurnChart() {
+  const wrap = document.getElementById('daily-burn');
+  if (!wrap) return;
+  const days = state.days;
+  const totalTripHKD = expenses.reduce((s, x) => s + toHKD(x.amount, x.currency, x.fxRate), 0);
+  // Build per-day per-category buckets. Expenses without a day are spread
+  // evenly across all days for the burn chart (so flights/global purchases
+  // still show some footprint).
+  const buckets = days.map(d => ({ day: d.day, date: d.date, total: 0, byCat: {} }));
+  let unassignedTotal = 0;
+  expenses.forEach(x => {
+    const hkd = toHKD(x.amount, x.currency, x.fxRate);
+    if (x.day) {
+      const b = buckets.find(b => b.day === x.day);
+      if (b) {
+        b.total += hkd;
+        b.byCat[x.category] = (b.byCat[x.category] || 0) + hkd;
+      } else {
+        unassignedTotal += hkd;
+      }
+    } else {
+      unassignedTotal += hkd;
+    }
+  });
+  // Spread unassigned evenly
+  if (unassignedTotal > 0 && buckets.length > 0) {
+    const per = unassignedTotal / buckets.length;
+    buckets.forEach(b => {
+      b.total += per;
+      b.byCat.other = (b.byCat.other || 0) + per;
+    });
+  }
+  const maxDay = Math.max(1, ...buckets.map(b => b.total));
+  const totalSpent = buckets.reduce((s, b) => s + b.total, 0);
+  const avgPerDay = days.length > 0 ? totalTripHKD / days.length : 0;
+  // Avg line position
+  const avgPct = maxDay > 0 ? (avgPerDay / maxDay) * 100 : 0;
+  const bars = buckets.map(b => {
+    const heightPct = maxDay > 0 ? (b.total / maxDay) * 100 : 0;
+    const segs = Object.entries(b.byCat)
+      .sort((a, b2) => b2[1] - a[1])
+      .map(([k, v]) => {
+        const segPct = b.total > 0 ? (v / b.total) * 100 : 0;
+        return `<div style="height:${segPct}%; background:${(CATEGORIES[k] || CATEGORIES.other).color}" title="${(CATEGORIES[k] || CATEGORIES.other).label}: HK$${fmt(v)}"></div>`;
+      }).join('');
+    return `
+      <div class="burn-col" title="Day ${b.day} · ${b.date} · HK$${fmt(b.total)}">
+        <div class="burn-bar-wrap">
+          <div class="burn-bar" style="height:${heightPct}%">${segs}</div>
+        </div>
+        <div class="burn-amt">${b.total > 0 ? 'HK$' + fmt(b.total) : '—'}</div>
+        <div class="burn-day">D${b.day}</div>
+      </div>`;
+  }).join('');
+  wrap.innerHTML = `
+    <div class="burn-header">
+      <h3>每日燒錢率</h3>
+      <div class="burn-meta">全程 HK$${fmt(totalSpent)} · 平均 HK$${fmt(avgPerDay)}／日</div>
+    </div>
+    <div class="burn-chart">
+      ${avgPct > 0 ? `<div class="burn-avg-line" style="bottom:${avgPct}%" title="平均 HK$${fmt(avgPerDay)}"></div>` : ''}
+      ${bars}
+    </div>
+    <div class="burn-note">未指定日子嘅開支會平均攝入 13 日。點柱看明細。</div>
+  `;
+}
+
+// Simple itinerary sanity checks based on day load + altitude
+function renderItinerarySanity() {
+  const wrap = document.getElementById('sanity-check');
+  if (!wrap) return;
+  const warnings = [];
+  state.days.forEach(d => {
+    const spotCount = (d.spots || []).length;
+    const drive = parseFloat(d.driveHours) || 0;
+    const alt = DAY_ALTITUDE[d.day] || 0;
+    const dayLabel = `Day ${d.day}·${d.city || ''}`;
+    if (drive > 8) {
+      warnings.push({ level: 'warn', day: d.day, label: dayLabel, msg: `車程約 ${drive.toFixed(1)} 小時，偏長，記住中途休息` });
+    }
+    if (spotCount > 4) {
+      warnings.push({ level: 'warn', day: d.day, label: dayLabel, msg: `${spotCount} 個景點，行程密集，可以預留 buffer 時間` });
+    }
+    if (alt >= 3000 && spotCount > 3) {
+      warnings.push({ level: 'alt', day: d.day, label: dayLabel, msg: `高原日·海拔 ~${alt}m + ${spotCount} 個景點，多飲水、走慢點` });
+    } else if (alt >= 3500) {
+      warnings.push({ level: 'alt', day: d.day, label: dayLabel, msg: `高原日·海拔 ~${alt}m，帶高原藥、避免劇烈運動` });
+    }
+  });
+  if (warnings.length === 0) {
+    wrap.innerHTML = `
+      <div class="sanity-header">
+        <h3>行程檢查</h3>
+        <span class="sanity-clean">· 沒有明顯問題</span>
+      </div>
+      <div class="sanity-note">車程 ≤ 8 小時、景點 ≤ 4、高原日已考慮。出發前可再複查一次。</div>
+    `;
+    return;
+  }
+  const items = warnings.map(w => `
+    <div class="sanity-row level-${w.level}">
+      <div class="sanity-day-pill">${w.label}</div>
+      <div class="sanity-msg">${w.msg}</div>
+    </div>`).join('');
+  wrap.innerHTML = `
+    <div class="sanity-header">
+      <h3>行程檢查</h3>
+      <span class="sanity-count">${warnings.length} 項提醒</span>
+    </div>
+    ${items}
+  `;
 }
 
 /* ---- Expense modal ---- */
