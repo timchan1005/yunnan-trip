@@ -127,9 +127,11 @@ function initMap() {
           let dominant = '#d97441';
           let best = 0;
           Object.entries(colorTally).forEach(([c, n]) => { if (n > best) { best = n; dominant = c; } });
+          // v39.2: render the cluster bubble using the same pin shape as individual
+          // spot/hotel markers so font, border and the triangle pointer all match.
           const sizeClass = count < 5 ? 'cluster-sm' : count < 12 ? 'cluster-md' : 'cluster-lg';
-          const html = `<div class="yn-cluster ${sizeClass}" style="--cl-color:${dominant}"><span class="yn-cluster-count">${count}</span><span class="yn-cluster-ring"></span></div>`;
-          return L.divIcon({ html, className: 'yn-cluster-wrap', iconSize: [44, 44] });
+          const html = `<div class="pin yn-cluster-pin ${sizeClass}" style="background:${dominant};border-top-color:${dominant}"><span>${count}</span></div>`;
+          return L.divIcon({ html, className: 'dot-marker yn-cluster-wrap', iconSize: [32, 42], iconAnchor: [15, 40], popupAnchor: [0, -36] });
         },
       })
     : L.layerGroup();
@@ -647,7 +649,7 @@ function renderOverview() {
 
     // Spot markers — feed into the cluster group so the overview stays tidy.
     day.spots.forEach((spot, i) => {
-      const m = createMarker(spot, { color: day.color, label: String(i + 1), small: true });
+      const m = createMarker(spot, { color: day.color, label: String(i + 1) });
       m.options._dayColor = day.color;
       m.bindPopup(buildPopup(spot, { kind: 'spot', dayIdx, spotIdx: i }));
       m.on('click', () => m.openPopup());
