@@ -3470,3 +3470,259 @@ body.view-budget .fab {
   .chk-groups { grid-template-columns: 1fr; }
   .chk-header { flex-direction: column; align-items: stretch; }
 }
+
+/* ===== v46: share/print buttons in header ===== */
+.share-tools {
+  display: flex;
+  gap: 6px;
+  margin-left: 8px;
+}
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--card);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.share-btn:hover { background: rgba(0,0,0,0.04); transform: translateY(-1px); }
+.share-btn svg { color: var(--ink-2); }
+@media (max-width: 720px) {
+  .share-btn span { display: none; }
+  .share-btn { padding: 6px 8px; }
+}
+
+/* ===== v46: spot row check-in btn + state ===== */
+.spot-row.checked-in {
+  background: linear-gradient(180deg, rgba(42,157,143,0.06), rgba(42,157,143,0.02));
+  border-left: 3px solid #2a9d8f;
+}
+.spot-tag.checkedin {
+  background: rgba(42,157,143,0.16);
+  color: #1f6b62;
+  border: 1px solid rgba(42,157,143,0.32);
+  font-weight: 600;
+  padding: 1px 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+.spot-checkin {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.spot-checkin .ci-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.spot-checkin .ci-memo-preview {
+  flex: 1 1 180px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  background: rgba(0,0,0,0.025);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-style: italic;
+}
+
+/* ===== v46: hotel info row (driver-mode focused) ===== */
+.spot-hotelinfo {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 11.5px;
+}
+.spot-hotelinfo .hi-addr {
+  color: var(--ink-3);
+  flex: 1 1 100%;
+  line-height: 1.4;
+}
+.spot-hotelinfo .hi-tel,
+.spot-hotelinfo .hi-map {
+  color: #1d3557;
+  text-decoration: none;
+  padding: 2px 9px;
+  border: 1px solid rgba(29,53,87,0.18);
+  border-radius: 999px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.spot-hotelinfo .hi-tel:hover,
+.spot-hotelinfo .hi-map:hover {
+  background: rgba(29,53,87,0.05);
+}
+
+/* ===== v46: check-in modal ===== */
+.modal-card-narrow {
+  max-width: 460px;
+}
+.ci-preview {
+  width: 100%;
+  min-height: 180px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.ci-preview img {
+  width: 100%;
+  height: auto;
+  max-height: 320px;
+  object-fit: contain;
+  display: block;
+}
+.ci-empty {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+#ci-file {
+  font-size: 13px;
+}
+#ci-memo {
+  width: 100%;
+  font-size: 14px;
+  font-family: inherit;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--card);
+  color: var(--ink-1);
+  resize: vertical;
+  min-height: 70px;
+}
+
+/* ===== v46: driver mode \u2014 simplify the UI ===== */
+body.driver-mode .view-tabs,
+body.driver-mode .share-tools,
+body.driver-mode .topbar-search,
+body.driver-mode .sync-wrap,
+body.driver-mode .fab,
+body.driver-mode .layer-toggle,
+body.driver-mode .map-quick-nav,
+body.driver-mode .breakdown-card,
+body.driver-mode .budget-summary,
+body.driver-mode .bva-card,
+body.driver-mode .burn-card,
+body.driver-mode .sanity-card,
+body.driver-mode .checklist-card,
+body.driver-mode .budget-toolbar,
+body.driver-mode .expense-list,
+body.driver-mode .budget-foot,
+body.driver-mode .spot-actions,
+body.driver-mode .checkin-btn,
+body.driver-mode #btn-close-drawer {
+  display: none !important;
+}
+body.driver-mode .drawer {
+  position: static !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  box-shadow: none !important;
+  background: transparent;
+}
+body.driver-mode .map-wrap {
+  display: none !important;
+}
+body.driver-mode .topbar-inner {
+  justify-content: flex-start;
+}
+body.driver-mode .brand-title::after {
+  content: " · 司機";
+  color: #c1432e;
+  font-size: 12px;
+  margin-left: 6px;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+/* ===== v46: print stylesheet ===== */
+@media print {
+  @page { margin: 12mm; }
+  body {
+    background: white !important;
+    color: #1d3557 !important;
+  }
+  .topbar,
+  .view-tabs,
+  .share-tools,
+  .topbar-search,
+  .sync-wrap,
+  .map-quick-nav,
+  .map-wrap,
+  .layer-toggle,
+  .fab,
+  .drawer-toggle,
+  .modal,
+  .global-search-overlay,
+  .day-rail-wrap,
+  .breakdown-card,
+  .budget-summary,
+  .bva-card,
+  .burn-card,
+  .sanity-card,
+  .checklist-card,
+  .budget-toolbar,
+  .expense-list,
+  .budget-foot,
+  .spot-actions,
+  .toast,
+  .toast-container {
+    display: none !important;
+  }
+  .drawer {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    background: white !important;
+    transform: none !important;
+  }
+  .drawer-body {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .day-card {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+    margin-bottom: 12px !important;
+  }
+  .spot-row {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .ci-thumb { max-width: 80px !important; }
+  body::before {
+    content: "雲南之旅 · 2026/10/10 – 10/22 · 13 日完整行程";
+    display: block;
+    font-size: 14px;
+    color: #1d3557;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(0,0,0,0.15);
+    font-weight: 600;
+  }
+}

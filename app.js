@@ -982,6 +982,12 @@ function buildSpotRow(loc, ctx) {
   const row = document.createElement('div');
   row.className = 'spot-row' + (ctx.isHotel ? ' is-hotel' : '');
   const bullet = ctx.isHotel ? '🏨' : (ctx.spotIdx + 1);
+  // v46: check-in lookup
+  const spotId = loc.id || `day${state.days[ctx.dayIdx].day}-${ctx.isHotel ? 'h' : 's' + (ctx.spotIdx + 1)}`;
+  const checkin = getCheckin(spotId);
+  if (checkin) row.classList.add('checked-in');
+  // v46: hotel info for driver-mode display
+  const hInfo = ctx.isHotel ? lookupHotelInfo(loc.name) : null;
   row.innerHTML = `
     <div class="spot-bullet">${bullet}</div>
     <div class="spot-info">
@@ -989,10 +995,23 @@ function buildSpotRow(loc, ctx) {
         ${escapeHTML(loc.name)}
         ${ctx.isHotel ? '<span class="spot-tag hotel">酒店</span>' : (loc.time ? `<span class="spot-tag time">${escapeHTML(loc.time)}</span>` : '')}
         ${(() => { const oh = !ctx.isHotel ? lookupSpotHours(loc.name) : null; return oh ? `<span class="spot-tag hours" title="開放時間">⏱ ${escapeHTML(oh)}</span>` : ''; })()}
+        ${checkin ? '<span class="spot-tag checkedin" title="已打卡">✓ 打卡</span>' : ''}
       </div>
       ${loc.note ? `<div class="spot-note">${escapeHTML(loc.note)}</div>` : ''}
+      ${hInfo ? `<div class="spot-hotelinfo">
+        <span class="hi-addr">${escapeHTML(hInfo.addr)}</span>
+        <a class="hi-tel" href="tel:${hInfo.tel.replace(/\s/g, '')}">${escapeHTML(hInfo.tel)}</a>
+        <a class="hi-map" href="https://maps.google.com/?q=${loc.lat},${loc.lng}" target="_blank" rel="noopener">地圖</a>
+      </div>` : ''}
+      ${checkin ? `<div class="spot-checkin">
+        ${checkin.photo ? `<img class="ci-thumb" src="${checkin.photo}" alt="check-in">` : ''}
+        ${checkin.memo ? `<div class="ci-memo-preview">${escapeHTML(checkin.memo)}</div>` : ''}
+      </div>` : ''}
     </div>
     <div class="spot-actions">
+      <button class="icon-btn checkin-btn" data-action="checkin" title="打卡" aria-label="打卡">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
       <button class="icon-btn" data-action="focus" title="聚焦地圖" aria-label="聚焦">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
       </button>
@@ -1003,7 +1022,12 @@ function buildSpotRow(loc, ctx) {
   `;
   row.addEventListener('click', (e) => {
     const action = e.target.closest('[data-action]')?.dataset.action;
-    if (action === 'edit') {
+    // don't intercept tel/map links inside hotelinfo
+    if (e.target.closest('a')) return;
+    if (action === 'checkin') {
+      e.stopPropagation();
+      openCheckinModal(loc, ctx);
+    } else if (action === 'edit') {
       e.stopPropagation();
       openEdit(ctx.dayIdx, ctx.spotIdx ?? -1, !!ctx.isHotel, false);
     } else {
@@ -1650,6 +1674,10 @@ function _handleFocusParam() {
 document.addEventListener('DOMContentLoaded', () => {
   state = loadState();
   initMap();
+  // v46: driver-mode body class — hides edit/budget/sync controls via CSS
+  if (isDriverMode()) {
+    document.body.classList.add('driver-mode');
+  }
   renderAll();
   _handleFocusParam();
 
@@ -1657,6 +1685,22 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.matchMedia('(min-width: 900px)').matches) {
     document.getElementById('drawer').classList.add('open');
   }
+
+  // v46: wire share + print buttons
+  const btnShare = document.getElementById('btn-share-driver');
+  if (btnShare) btnShare.addEventListener('click', copyDriverLink);
+  const btnPrint = document.getElementById('btn-print');
+  if (btnPrint) btnPrint.addEventListener('click', handlePrint);
+
+  // v46: wire check-in modal
+  const ciClose = document.getElementById('btn-close-checkin');
+  if (ciClose) ciClose.addEventListener('click', closeCheckinModal);
+  const ciSave = document.getElementById('btn-save-checkin');
+  if (ciSave) ciSave.addEventListener('click', handleCheckinSave);
+  const ciDel = document.getElementById('ci-delete');
+  if (ciDel) ciDel.addEventListener('click', handleCheckinDelete);
+  const ciFile = document.getElementById('ci-file');
+  if (ciFile) ciFile.addEventListener('change', handleCheckinFileChange);
 
   document.getElementById('btn-drawer').addEventListener('click', openDrawer);
   document.getElementById('btn-close-drawer').addEventListener('click', closeDrawer);
@@ -2405,6 +2449,150 @@ function renderChecklist() {
   });
 }
 const CHECKLIST_KEY = 'yunnan-checklist-v1';
+
+// v46: check-in storage — key by spot id
+const CHECKIN_KEY = 'yunnan-checkin-v1';
+function loadCheckins() {
+  try { return JSON.parse(safeStorage.getItem(CHECKIN_KEY) || '{}'); } catch (_) { return {}; }
+}
+function saveCheckin(spotId, data) {
+  const all = loadCheckins();
+  if (data === null) delete all[spotId];
+  else all[spotId] = data;
+  try { safeStorage.setItem(CHECKIN_KEY, JSON.stringify(all)); } catch (e) { console.warn('checkin save failed', e); }
+}
+function getCheckin(spotId) {
+  if (!spotId) return null;
+  return loadCheckins()[spotId] || null;
+}
+
+// v46: open check-in modal for a given location
+let activeCheckin = null; // { spotId, name, ctx }
+function openCheckinModal(loc, ctx) {
+  const spotId = loc.id || `day${state.days[ctx.dayIdx].day}-${ctx.isHotel ? 'h' : 's' + (ctx.spotIdx + 1)}`;
+  activeCheckin = { spotId, name: loc.name, ctx };
+  const existing = getCheckin(spotId);
+  const modal = document.getElementById('checkin-modal');
+  if (!modal) return;
+  document.getElementById('ci-title').textContent = `打卡 · ${loc.name}`;
+  document.getElementById('ci-memo').value = existing?.memo || '';
+  const preview = document.getElementById('ci-preview');
+  if (existing?.photo) {
+    preview.innerHTML = `<img src="${existing.photo}" alt="check-in photo">`;
+  } else {
+    preview.innerHTML = '<div class="ci-empty">未上傳相片</div>';
+  }
+  document.getElementById('ci-file').value = '';
+  document.getElementById('ci-delete').style.display = existing ? 'inline-flex' : 'none';
+  modal.hidden = false;
+}
+function closeCheckinModal() {
+  const modal = document.getElementById('checkin-modal');
+  if (modal) modal.hidden = true;
+  activeCheckin = null;
+}
+function handleCheckinSave() {
+  if (!activeCheckin) return;
+  const memo = document.getElementById('ci-memo').value.trim();
+  const preview = document.getElementById('ci-preview').querySelector('img');
+  const existing = getCheckin(activeCheckin.spotId);
+  const photo = preview ? preview.src : (existing?.photo || null);
+  if (!photo && !memo) {
+    toast('請上傳相片或寫一句感想');
+    return;
+  }
+  saveCheckin(activeCheckin.spotId, {
+    ts: Date.now(),
+    photo,
+    memo
+  });
+  toast(`已打卡 · ${activeCheckin.name}`);
+  closeCheckinModal();
+  renderDrawer();
+}
+function handleCheckinDelete() {
+  if (!activeCheckin) return;
+  saveCheckin(activeCheckin.spotId, null);
+  toast('已清除打卡');
+  closeCheckinModal();
+  renderDrawer();
+}
+function handleCheckinFileChange(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (file.size > 4 * 1024 * 1024) {
+    toast('相片太大 (>4MB)，請換張小一點');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    // downscale via canvas to keep localStorage small
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 1024;
+      const scale = img.width > maxW ? maxW / img.width : 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const cx = canvas.getContext('2d');
+      cx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataURL = canvas.toDataURL('image/jpeg', 0.82);
+      document.getElementById('ci-preview').innerHTML = `<img src="${dataURL}" alt="check-in photo">`;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// v46: hotel phone / address lookup (placeholder — user can edit later)
+const HOTEL_INFO = {
+  '昆明索菲特大酒店':              { addr: '雲南省昆明市新亞洲體育城南亞風情第壹城', tel: '+86 871 6388 8888' },
+  '大理悅灣 VILLA 半山海景酒店':   { addr: '雲南省大理市雙廊鎮玉幾島南側半山', tel: '+86 872 246 1888' },
+  '麗江金茂隱逸酒店·凱悅臻選':     { addr: '雲南省麗江市玉龍縣甘海子景區', tel: '+86 888 559 0000' },
+  '瀘沽湖嵐岳酒店':                { addr: '雲南省麗江市寧蒗縣瀘沽湖里格村', tel: '+86 888 588 8888' },
+  '麗江悅榕莊':                    { addr: '雲南省麗江市玉龍縣束河古鎮南口', tel: '+86 888 533 1111' },
+  '迪慶月光城英迪格酒店':          { addr: '雲南省迪慶州香格里拉市獨克宗古城旁', tel: '+86 887 828 8666' },
+  '雪山醒來酒店（霧濃頂）':        { addr: '雲南省迪慶州德欽縣霧濃頂觀景台旁', tel: '+86 887 841 6888' },
+  '香格里拉仁安悅榕莊':            { addr: '雲南省迪慶州香格里拉市建塘鎮仁安村', tel: '+86 887 828 8822' },
+  '香格里拉闊野此間':              { addr: '雲南省迪慶州香格里拉市建塘鎮哈巴', tel: '+86 887 821 3888' },
+  '迪慶香格里拉機場':              { addr: '雲南省迪慶州香格里拉市迪慶機場路', tel: '+86 887 829 9999' }
+};
+function lookupHotelInfo(name) {
+  if (!name) return null;
+  if (HOTEL_INFO[name]) return HOTEL_INFO[name];
+  for (const k of Object.keys(HOTEL_INFO)) {
+    if (name.indexOf(k) !== -1 || k.indexOf(name) !== -1) return HOTEL_INFO[k];
+  }
+  return null;
+}
+
+// v46: driver mode detection — ?driver=1 in URL
+function isDriverMode() {
+  try {
+    return new URLSearchParams(window.location.search).get('driver') === '1';
+  } catch (_) { return false; }
+}
+
+function copyDriverLink() {
+  const url = new URL(window.location.href);
+  url.searchParams.set('driver', '1');
+  url.hash = '';
+  const link = url.toString();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(
+      () => toast('司機連結已複製'),
+      () => prompt('司機連結', link)
+    );
+  } else {
+    prompt('司機連結', link);
+  }
+}
+
+function handlePrint() {
+  // Make sure drawer is open + budget view rendered
+  if (typeof openDrawer === 'function') openDrawer();
+  setTimeout(() => window.print(), 200);
+}
 
 /* ---- Expense modal ---- */
 // Count consecutive nights at the same hotel starting from a given day number.
