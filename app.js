@@ -2150,7 +2150,26 @@ function renderDailyBurnChart() {
   let unassignedTotal = 0;
   expenses.forEach(x => {
     const hkd = toHKD(x.amount, x.currency, x.fxRate);
-    if (x.day) {
+    if (!x.day) {
+      unassignedTotal += hkd;
+      return;
+    }
+    // v47: hotel expenses with multi-night should be amortised across nights
+    const nights = (x.category === 'hotel' && x.nights && x.nights > 1) ? x.nights : 1;
+    if (nights > 1) {
+      const per = hkd / nights;
+      for (let i = 0; i < nights; i++) {
+        const targetDay = x.day + i;
+        const b = buckets.find(bb => bb.day === targetDay);
+        if (b) {
+          b.total += per;
+          b.byCat[x.category] = (b.byCat[x.category] || 0) + per;
+        } else {
+          // night falls outside trip range — keep in unassigned
+          unassignedTotal += per;
+        }
+      }
+    } else {
       const b = buckets.find(b => b.day === x.day);
       if (b) {
         b.total += hkd;
@@ -2158,8 +2177,6 @@ function renderDailyBurnChart() {
       } else {
         unassignedTotal += hkd;
       }
-    } else {
-      unassignedTotal += hkd;
     }
   });
   // Spread unassigned evenly
