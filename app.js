@@ -557,8 +557,8 @@ function scheduleCollisionPass() {
 }
 function applyMarkerCollisionAvoidance() {
   if (!map) return;
-  const COLLIDE_PX = 38;        // anchors closer than this collide
-  const STAGGER_PX = 34;        // vertical lift per stagger step
+  const COLLIDE_PX = 46;        // anchors closer than this collide
+  const STAGGER_PX = 38;        // vertical lift per stagger step
   const MAX_STEPS = 4;
 
   const markers = [];
