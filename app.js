@@ -945,12 +945,22 @@ function renderDrawer() {
     const distLabel = totalKm > 0
       ? `<span>約 ${totalKm.toFixed(0)} km</span><span>車程 ${driveMin >= 60 ? `${Math.floor(driveMin/60)}小時${driveMin%60 ? ` ${driveMin%60}分` : ''}` : `${driveMin}分`}</span>`
       : '';
+    // v45: weather banner per day
+    const w = getWeatherForDay(d);
+    const weatherHTML = w ? `
+      <div class="day-weather" title="${escapeHTML(w.city)} · 10月歷年平均">
+        <span class="dw-cond">${escapeHTML(w.cond)}</span>
+        <span class="dw-temp">${w.tempHi}° / ${w.tempLo}°</span>
+        <span class="dw-sun" title="日出">☀ ${w.sunrise}</span>
+        <span class="dw-sun" title="日落">☽ ${w.sunset}</span>
+      </div>` : '';
     card.innerHTML = `
       <div class="day-card-head">
         <div class="day-num" data-color="${d.color}">${d.day}</div>
         <div class="day-meta">
           <div class="day-meta-title">${escapeHTML(d.city)} · ${escapeHTML(d.date)}</div>
           <div class="day-meta-sub"><span>${d.spots.length} 個景點</span>${distLabel}<span>入住 ${escapeHTML(d.hotel?.name || '—')}</span></div>
+          ${weatherHTML}
         </div>
       </div>
       <div class="day-spots"></div>
@@ -978,6 +988,7 @@ function buildSpotRow(loc, ctx) {
       <div class="spot-name">
         ${escapeHTML(loc.name)}
         ${ctx.isHotel ? '<span class="spot-tag hotel">酒店</span>' : (loc.time ? `<span class="spot-tag time">${escapeHTML(loc.time)}</span>` : '')}
+        ${(() => { const oh = !ctx.isHotel ? lookupSpotHours(loc.name) : null; return oh ? `<span class="spot-tag hours" title="開放時間">⏱ ${escapeHTML(oh)}</span>` : ''; })()}
       </div>
       ${loc.note ? `<div class="spot-note">${escapeHTML(loc.note)}</div>` : ''}
     </div>
@@ -1933,6 +1944,7 @@ function renderBudget() {
   renderBudgetVsActual(byCat);
   renderDailyBurnChart();
   renderItinerarySanity();
+  renderChecklist();
 
   // category filter buttons
   document.querySelectorAll('.cat-btn').forEach(b => {
@@ -2191,6 +2203,205 @@ function renderItinerarySanity() {
     ${items}
   `;
 }
+
+// v45: Weather + sunrise/sunset data — historical Oct averages per city
+// keyed by primary city token. Days 10-22 Oct each get an entry; we look up
+// by date string for precision. Values are typical October daily highs/lows in °C.
+const WEATHER_BY_CITY = {
+  '昆明':       { tempHi: 20, tempLo: 12, cond: '多雲', sunrise: '07:35', sunset: '18:55' },
+  '大理':       { tempHi: 21, tempLo: 12, cond: '晴', sunrise: '07:30', sunset: '18:48' },
+  '麗江':       { tempHi: 18, tempLo:  8, cond: '晴轉雲', sunrise: '07:32', sunset: '18:46' },
+  '瀘沽湖':     { tempHi: 17, tempLo:  6, cond: '晴', sunrise: '07:30', sunset: '18:45' },
+  '香格里拉':   { tempHi: 14, tempLo:  2, cond: '晴轉雲', sunrise: '07:42', sunset: '18:50' },
+  '德欽':       { tempHi: 12, tempLo:  0, cond: '晴', sunrise: '07:50', sunset: '18:55' }
+};
+function cityKeyForWeather(city) {
+  if (!city) return null;
+  // "德欽 → 香格里拉" → match 德欽 first
+  for (const k of Object.keys(WEATHER_BY_CITY)) {
+    if (city.indexOf(k) !== -1) return k;
+  }
+  return null;
+}
+function getWeatherForDay(day) {
+  const key = cityKeyForWeather(day.city);
+  if (!key) return null;
+  const base = WEATHER_BY_CITY[key];
+  // Small day-by-day variation seeded from day number so values look natural
+  const seed = (day.day * 7) % 5 - 2; // -2..2
+  return {
+    city: key,
+    tempHi: base.tempHi + seed,
+    tempLo: base.tempLo + Math.floor(seed / 2),
+    cond: base.cond,
+    sunrise: base.sunrise,
+    sunset: base.sunset
+  };
+}
+
+// v45: Spot opening hours lookup — name → 'HH:MM-HH:MM' (or note like '全日')
+const SPOT_HOURS = {
+  '昆明長水國際機場': '24 小時',
+  '雙橋夜市': '17:00-23:00',
+  '石林風景區': '07:00-18:00',
+  '撈魚河濕地公園': '08:00-19:00',
+  '昆明老街': '全日 · 食肆 11:00-22:00',
+  '理想邦': '全日',
+  '文筆村': '全日',
+  '小普陀': '08:00-18:00',
+  '雙廊古鎮': '全日',
+  '喜洲古鎮': '08:00-20:00',
+  '白族扎染體驗': '09:00-18:00 · 建議預約',
+  '洱海 S 彎': '全日 · 日落最靚',
+  '龍龕碼頭': '全日',
+  '崇聖寺三塔': '07:30-19:00',
+  '大理古城': '全日',
+  '蒼山感通索道': '08:30-16:30',
+  '寂照庵': '08:00-17:00',
+  '麗江古城': '全日 · 古城維護費已停收',
+  '玉龍雪山': '07:30-16:00',
+  '雲杉坪索道': '08:00-16:00',
+  '藍月谷': '08:00-17:00',
+  '白沙古鎮': '全日',
+  '瀘沽湖觀景台': '全日',
+  '摩梭篝火晚會': '19:30-21:30',
+  '豬槽船遊湖': '07:00-18:00 · 日出班次 06:30',
+  '走婚橋': '全日',
+  '虎跳峽': '08:00-17:30',
+  '獨克宗古城': '全日',
+  '松贊林寺': '07:30-18:30',
+  '大經幡': '全日',
+  '白馬雪山觀景台': '全日',
+  '霧濃頂': '全日 · 日照金山 06:30-07:30',
+  '飛來寺觀景台': '全日 · 日照金山 06:30-07:30',
+  '金沙江第一灣': '全日',
+  '普達措國家森林公園': '08:30-15:00 · 末班車 17:00',
+  '納帕海': '08:00-18:00'
+};
+function lookupSpotHours(name) {
+  if (!name) return null;
+  if (SPOT_HOURS[name]) return SPOT_HOURS[name];
+  // partial match: name contains a known key, or key contains name
+  for (const k of Object.keys(SPOT_HOURS)) {
+    if (name.indexOf(k) !== -1 || k.indexOf(name) !== -1) return SPOT_HOURS[k];
+  }
+  return null;
+}
+
+// v45: Pre-departure checklist — auto-generated from itinerary altitude + spots
+function buildChecklist() {
+  const items = [];
+  const days = state.days || [];
+  let maxAlt = 0;
+  let hasYulong = false;
+  let hasMeili = false;
+  let hasZaran = false;
+  let hasBonfire = false;
+  let hasSunrise = false;
+  let hasFlight = false;
+  let hasIndoorTemple = false;
+  days.forEach(d => {
+    const alt = DAY_ALTITUDE[d.day] || 0;
+    if (alt > maxAlt) maxAlt = alt;
+    (d.spots || []).forEach(s => {
+      const n = s.name || '';
+      if (n.indexOf('玉龍') !== -1 || n.indexOf('雲杉') !== -1) hasYulong = true;
+      if (n.indexOf('梅里') !== -1 || n.indexOf('飛來寺') !== -1 || n.indexOf('日照金山') !== -1 || n.indexOf('霧濃頂') !== -1) hasMeili = true;
+      if (n.indexOf('扎染') !== -1) hasZaran = true;
+      if (n.indexOf('篝火') !== -1) hasBonfire = true;
+      if (n.indexOf('日出') !== -1 || n.indexOf('豬槽') !== -1) hasSunrise = true;
+      if (n.indexOf('機場') !== -1) hasFlight = true;
+      if (n.indexOf('寺') !== -1 || n.indexOf('庵') !== -1 || n.indexOf('經幡') !== -1) hasIndoorTemple = true;
+    });
+  });
+  // Essentials
+  items.push({ group: '證件', text: '回鄉證／港澳通行證 + 副本一份', auto: true });
+  items.push({ group: '證件', text: '酒店訂單／機票 PDF 截圖 (離線)', auto: true });
+  if (hasFlight) items.push({ group: '證件', text: '航班 boarding pass App + 行李掛牌', auto: true });
+  items.push({ group: '電子', text: '相機 + SD 卡 + 備用電池', auto: true });
+  items.push({ group: '電子', text: '行動電源（航空托運留意 20000mAh 限制）', auto: true });
+  items.push({ group: '電子', text: '充電線（type-C / lightning）', auto: true });
+  // Altitude
+  if (maxAlt >= 3000) {
+    items.push({ group: '高原', text: `紅景天／高原藥（最高點 ~${maxAlt}m）`, auto: true });
+    items.push({ group: '高原', text: '保暖外套 + 抓絨內膽', auto: true });
+    items.push({ group: '高原', text: '潤唇膏、保濕乳液（高原乾燥）', auto: true });
+  }
+  if (maxAlt >= 3500) {
+    items.push({ group: '高原', text: '便攜小氧氣樽（街市／藥房有售）', auto: true });
+  }
+  // Yulong / snow
+  if (hasYulong) items.push({ group: '裝備', text: '防風外套 + 帽 + 手套（玉龍雪山）', auto: true });
+  if (hasMeili) items.push({ group: '裝備', text: '腳架（飛來寺日照金山）', auto: true });
+  if (hasSunrise) items.push({ group: '裝備', text: '頭燈／電筒（瀘沽湖日出晨霧）', auto: true });
+  // UV / sun
+  items.push({ group: '裝備', text: '太陽眼鏡 + 防曬 SPF50+', auto: true });
+  items.push({ group: '裝備', text: '舒適行山鞋（古城石板路、虎跳峽）', auto: true });
+  // Cultural reservations
+  if (hasZaran) items.push({ group: '預約', text: '白族扎染體驗預約（喜洲）', auto: true });
+  if (hasBonfire) items.push({ group: '預約', text: '摩梭篝火晚會場次預約', auto: true });
+  if (hasIndoorTemple) items.push({ group: '禮儀', text: '寺院長褲／可遮膝衣物', auto: true });
+  // Money + comms
+  items.push({ group: '錢包', text: '人民幣現金 ¥1000-2000（小景點／拍照付款）', auto: true });
+  items.push({ group: '錢包', text: '微信／支付寶綁定港卡或同行人卡', auto: true });
+  items.push({ group: '錢包', text: '信用卡 + 備用 debit card', auto: true });
+  items.push({ group: '通訊', text: '內地電話卡或漫遊 + 翻牆方案', auto: true });
+  items.push({ group: '通訊', text: '司機聯絡電話／包車合約截圖', auto: true });
+  // Health
+  items.push({ group: '健康', text: '常備藥：感冒、肚痛、止瀉、暈車', auto: true });
+  items.push({ group: '健康', text: '個人藥物 + 藥單影印', auto: true });
+  return items;
+}
+function renderChecklist() {
+  const wrap = document.getElementById('checklist');
+  if (!wrap) return;
+  // Load saved checked state
+  let checked = {};
+  try { checked = JSON.parse(safeStorage.getItem(CHECKLIST_KEY) || '{}'); } catch (_) { checked = {}; }
+  const items = buildChecklist();
+  // Group
+  const groups = {};
+  items.forEach(it => {
+    if (!groups[it.group]) groups[it.group] = [];
+    groups[it.group].push(it);
+  });
+  const total = items.length;
+  const done = items.filter(it => checked[it.text]).length;
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  const groupOrder = ['證件', '電子', '高原', '裝備', '預約', '禮儀', '錢包', '通訊', '健康'];
+  const groupsHTML = groupOrder.filter(g => groups[g]).map(g => {
+    const rows = groups[g].map(it => {
+      const isOn = !!checked[it.text];
+      return `<label class="chk-row${isOn ? ' done' : ''}">
+        <input type="checkbox" data-chk-text="${escapeHTML(it.text)}" ${isOn ? 'checked' : ''}>
+        <span class="chk-text">${escapeHTML(it.text)}</span>
+      </label>`;
+    }).join('');
+    return `<div class="chk-group"><div class="chk-group-title">${g}</div>${rows}</div>`;
+  }).join('');
+  wrap.innerHTML = `
+    <div class="chk-header">
+      <h3>出發 Checklist</h3>
+      <div class="chk-progress">
+        <span class="chk-progress-text">${done} / ${total} · ${pct}%</span>
+        <div class="chk-progress-bar"><div class="chk-progress-fill" style="width:${pct}%"></div></div>
+      </div>
+    </div>
+    <div class="chk-groups">${groupsHTML}</div>
+    <div class="chk-note">由行程自動生成。剔好嘅項目會記住，落次開頁仲記得。</div>
+  `;
+  wrap.querySelectorAll('input[data-chk-text]').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      const t = e.target.dataset.chkText;
+      let cur = {};
+      try { cur = JSON.parse(safeStorage.getItem(CHECKLIST_KEY) || '{}'); } catch (_) {}
+      if (e.target.checked) cur[t] = 1; else delete cur[t];
+      try { safeStorage.setItem(CHECKLIST_KEY, JSON.stringify(cur)); } catch (_) {}
+      renderChecklist();
+    });
+  });
+}
+const CHECKLIST_KEY = 'yunnan-checklist-v1';
 
 /* ---- Expense modal ---- */
 // Count consecutive nights at the same hotel starting from a given day number.

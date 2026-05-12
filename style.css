@@ -3322,3 +3322,151 @@ body.view-budget .fab {
   .sanity-row { grid-template-columns: 1fr; gap: 4px; }
   .sanity-day-pill { justify-self: start; }
 }
+
+/* ===== v45: weather banner on day card ===== */
+.day-weather {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+.day-weather .dw-cond {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(29,53,87,0.07);
+  color: var(--ink-1);
+  font-weight: 500;
+}
+.day-weather .dw-temp {
+  color: var(--ink-1);
+  font-weight: 500;
+}
+.day-weather .dw-sun {
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* ===== v45: spot opening hours tag ===== */
+.spot-tag.hours {
+  background: rgba(42,157,143,0.10);
+  color: #1f6b62;
+  border: 1px solid rgba(42,157,143,0.22);
+  font-size: 10.5px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* ===== v45: pre-departure checklist ===== */
+.checklist-card {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 22px 24px;
+  margin-top: 16px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 14px 30px -22px rgba(15,28,43,0.18);
+}
+.chk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.chk-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-1);
+}
+.chk-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chk-progress-text {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.chk-progress-bar {
+  width: 140px;
+  height: 6px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.chk-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2a9d8f, #1d3557);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.chk-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px 22px;
+}
+.chk-group {
+  break-inside: avoid;
+}
+.chk-group-title {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  font-weight: 600;
+}
+.chk-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--ink-1);
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.45;
+}
+.chk-row input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: #2a9d8f;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.chk-row.done .chk-text {
+  text-decoration: line-through;
+  color: var(--ink-3);
+}
+.chk-text {
+  flex: 1;
+  word-break: break-word;
+}
+.chk-note {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--ink-3);
+  padding-top: 12px;
+  border-top: 1px dashed rgba(0,0,0,0.05);
+}
+@media (max-width: 640px) {
+  .chk-groups { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .chk-progress-bar { width: 90px; }
+}
+@media (max-width: 480px) {
+  .chk-groups { grid-template-columns: 1fr; }
+  .chk-header { flex-direction: column; align-items: stretch; }
+}
