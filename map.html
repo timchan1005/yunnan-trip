@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=40">
+<link rel="stylesheet" href="style.css?v=41">
 </head>
 <body>
 
@@ -372,19 +372,20 @@
           <select id="e-day"></select>
         </label>
       </div>
-      <div class="field-row flight-hidden" id="flight-fields">
-        <label class="field">
-          <span>航班號</span>
-          <input type="text" id="e-flight-no" placeholder="例：CX 314" autocomplete="off">
-        </label>
-        <label class="field">
-          <span>出發</span>
-          <select id="e-flight-from"></select>
-        </label>
-        <label class="field">
-          <span>到達</span>
-          <select id="e-flight-to"></select>
-        </label>
+      <div class="flight-hidden" id="flight-fields">
+        <div class="flight-legs-bar">
+          <label class="field field-narrow" style="margin:0;">
+            <span>程數</span>
+            <select id="e-flight-legs">
+              <option value="1">1 程</option>
+              <option value="2">2 程</option>
+              <option value="3">3 程</option>
+              <option value="4">4 程</option>
+            </select>
+          </label>
+          <p class="flight-legs-hint-text">一筆買多程？選多項程數，總金額填在下面「金額」。</p>
+        </div>
+        <div id="e-flight-legs-list"></div>
       </div>
       <div class="flight-summary flight-hidden" id="flight-summary" aria-live="polite"></div>
       <div class="field-row hotel-hidden" id="hotel-fields">
@@ -472,7 +473,7 @@
 <script src="data.js?v=29"></script>
 <script src="s2t.js?v=29"></script>
 <script src="sync.js?v=29"></script>
-<script src="app.js?v=40"></script>
+<script src="app.js?v=41"></script>
 
 </body>
 </html>

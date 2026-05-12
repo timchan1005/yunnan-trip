@@ -2914,3 +2914,86 @@ body.view-budget .fab {
   .day-chip { height: 32px; font-size: 12px; padding: 0 11px; }
 }
 /* keep icons even on smallest screens */
+
+/* ============ v41: Budget modal \u2014 hotel + flight field blocks ============ */
+.hotel-hidden, .flight-hidden { display: none !important; }
+
+.field-narrow { max-width: 110px; }
+.field-narrow select, .field-narrow input { min-width: 0; }
+
+.input-readonly {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--ink-2);
+  cursor: default;
+}
+@media (prefers-color-scheme: dark) {
+  .input-readonly { background: rgba(255, 255, 255, 0.05); color: var(--ink-2); }
+}
+
+.hotel-summary, .flight-summary {
+  padding: 8px 12px;
+  margin: -4px 0 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  background: rgba(217, 116, 65, 0.06);
+  border: 1px solid rgba(217, 116, 65, 0.18);
+  border-radius: 10px;
+}
+.hotel-summary strong, .flight-summary strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+@media (prefers-color-scheme: dark) {
+  .hotel-summary, .flight-summary {
+    background: rgba(217, 116, 65, 0.10);
+    border-color: rgba(217, 116, 65, 0.28);
+  }
+}
+
+/* Flight leg cards inside the modal */
+.flight-leg-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px 4px;
+  margin-bottom: 8px;
+  background: rgba(0, 0, 0, 0.015);
+}
+@media (prefers-color-scheme: dark) {
+  .flight-leg-card { background: rgba(255, 255, 255, 0.025); border-color: rgba(255,255,255,0.08); }
+}
+.flight-leg-head {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--yn-sunset);
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+/* Expense list detail subline (hotel breakdown / flight legs) */
+.expense-detail {
+  font-size: 12px;
+  color: var(--ink-2);
+  margin-top: 2px;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+}
+
+/* Flight legs count + hint bar */
+.flight-legs-bar {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.flight-legs-hint-text {
+  flex: 1;
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+@media (max-width: 520px) {
+  .flight-legs-bar { flex-direction: column; align-items: stretch; gap: 6px; }
+  .flight-legs-hint-text { margin: 0 0 4px; }
+}

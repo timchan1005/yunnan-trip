@@ -672,6 +672,28 @@ function renderOverview() {
     }
   });
 
+  // Flight legs from the budget — draw each leg as a dashed great-circle-ish line.
+  // We iterate the live `expenses` array (loaded from localStorage at startup).
+  try {
+    const flightColor = (CATEGORIES && CATEGORIES.flight && CATEGORIES.flight.color) || '#c1432e';
+    (expenses || []).forEach(exp => {
+      if (exp.category !== 'flight') return;
+      const legs = Array.isArray(exp.flights) && exp.flights.length
+        ? exp.flights
+        : (exp.flightFrom || exp.flightTo)
+          ? [{ no: exp.flightNo, from: exp.flightFrom, to: exp.flightTo }]
+          : [];
+      legs.forEach(leg => {
+        const fa = findAirport(leg.from); const ta = findAirport(leg.to);
+        if (!fa || !ta) return;
+        const a = projectLatLng(fa.lat, fa.lng);
+        const b = projectLatLng(ta.lat, ta.lng);
+        drawCasedRoute([a, b], flightColor, { weight: 2.5, dashed: true });
+        allPoints.push(a, b);
+      });
+    });
+  } catch (_) { /* budget not loaded yet — ignore */ }
+
   if (allPoints.length) {
     const bounds = L.latLngBounds(allPoints);
     map.fitBounds(bounds, { padding: [60, 60], maxZoom: 9 });
@@ -1714,7 +1736,7 @@ const AIRPORTS = [
   { code: 'DLU', name: '大理鳳儀機場',           lat: 25.6494, lng: 100.3194 },
   { code: 'LJG', name: '麗江三義國際機場',     lat: 26.6800, lng: 100.2460 },
   { code: 'DIG', name: '香格里拉迪慶機場',       lat: 27.7936, lng: 99.6772  },
-  { code: 'NLH', name: '寧蒗瀆沒湖機場',     lat: 27.5286, lng: 100.7522 },
+  { code: 'NLH', name: '寧蒗瀘沽湖機場',     lat: 27.5286, lng: 100.7522 },
   { code: 'PVG', name: '上海浦東國際機場',     lat: 31.1443, lng: 121.8083 },
   { code: 'PEK', name: '北京首都國際機場',     lat: 40.0801, lng: 116.5846 },
   { code: 'TPE', name: '台北桃園國際機場',     lat: 25.0777, lng: 121.2328 }
@@ -1853,10 +1875,33 @@ function renderBudget() {
     const cny = toCNY(x.amount, x.currency);
     const hkd = cny * settings.fxRate;
     const showDual = x.currency !== 'CNY';
+    // Category-specific detail line (hotel breakdown, flight legs)
+    let detail = '';
+    if (x.category === 'hotel' && x.roomRate && x.nights && x.rooms) {
+      const sym = x.currency === 'CNY' ? '¥' : x.currency === 'HKD' ? 'HK$' : 'US$';
+      detail = `<div class="expense-detail">${sym}${fmt(x.roomRate)}/晚 × ${x.nights} 晚 × ${x.rooms} 房</div>`;
+    } else if (x.category === 'flight') {
+      const legs = Array.isArray(x.flights) && x.flights.length
+        ? x.flights
+        : (x.flightFrom || x.flightTo)
+          ? [{ no: x.flightNo, from: x.flightFrom, to: x.flightTo }]
+          : [];
+      if (legs.length) {
+        const parts = legs.map(l => {
+          const bits = [];
+          if (l.no) bits.push(escapeHTML(l.no));
+          if (l.from && l.to) bits.push(`${l.from} → ${l.to}`);
+          return bits.join(' · ');
+        }).filter(Boolean);
+        const prefix = legs.length > 1 ? `${legs.length} 程：` : '';
+        detail = `<div class="expense-detail">${prefix}${parts.join(' 、 ')}</div>`;
+      }
+    }
     return `<div class="expense-row" data-id="${x.id}">
       <div class="expense-icon" style="background:${cat.color}22;color:${cat.color}">${cat.icon}</div>
       <div class="expense-main">
         <div class="expense-name">${escapeHTML(x.name)}</div>
+        ${detail}
         <div class="expense-meta">
           ${dayInfo}
           <span>${cat.label}</span>
@@ -1926,6 +1971,87 @@ function updateHotelTotal() {
   }
 }
 
+/* ---------- Flight (multi-leg) ---------- */
+function airportOptionsHtml(selectedCode) {
+  return `<option value="">— 請選擇 —</option>` + AIRPORTS
+    .map(a => `<option value="${a.code}"${a.code === selectedCode ? ' selected' : ''}>${a.code} · ${a.name}</option>`)
+    .join('');
+}
+function renderFlightLegs(legs) {
+  const list = document.getElementById('e-flight-legs-list');
+  if (!list) return;
+  list.innerHTML = legs.map((leg, i) => `
+    <div class="flight-leg-card" data-leg-idx="${i}">
+      <div class="flight-leg-head">第 ${i + 1} 程</div>
+      <div class="field-row">
+        <label class="field">
+          <span>航班號</span>
+          <input type="text" class="e-leg-no" data-i="${i}" value="${(leg.no || '').replace(/"/g, '&quot;')}" placeholder="例：CX 314" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>出發</span>
+          <select class="e-leg-from" data-i="${i}">${airportOptionsHtml(leg.from)}</select>
+        </label>
+        <label class="field">
+          <span>到達</span>
+          <select class="e-leg-to" data-i="${i}">${airportOptionsHtml(leg.to)}</select>
+        </label>
+      </div>
+    </div>
+  `).join('');
+  // Wire each input to update summary live
+  list.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', readFlightLegsAndUpdate);
+    el.addEventListener('change', readFlightLegsAndUpdate);
+  });
+}
+function readFlightLegs() {
+  const list = document.getElementById('e-flight-legs-list');
+  if (!list) return [];
+  const cards = Array.from(list.querySelectorAll('.flight-leg-card'));
+  return cards.map(card => ({
+    no:   (card.querySelector('.e-leg-no').value || '').trim(),
+    from: card.querySelector('.e-leg-from').value || '',
+    to:   card.querySelector('.e-leg-to').value || ''
+  }));
+}
+function readFlightLegsAndUpdate() {
+  updateFlightSummary();
+}
+function updateFlightLegsCount() {
+  const want = parseInt(document.getElementById('e-flight-legs').value, 10) || 1;
+  const current = readFlightLegs();
+  const next = [];
+  for (let i = 0; i < want; i++) {
+    next.push(current[i] || { no: '', from: '', to: '' });
+  }
+  renderFlightLegs(next);
+  updateFlightSummary();
+}
+function updateFlightSummary() {
+  const legs = readFlightLegs();
+  const box = document.getElementById('flight-summary');
+  if (!box) return;
+  const lines = legs.map((l, i) => {
+    const parts = [];
+    if (l.no) parts.push(`<strong>${l.no}</strong>`);
+    const fa = findAirport(l.from); const ta = findAirport(l.to);
+    if (fa && ta) parts.push(`${fa.code} → ${ta.code}`);
+    else if (fa) parts.push(`${fa.code} → —`);
+    else if (ta) parts.push(`— → ${ta.code}`);
+    if (!parts.length) return `<span style="opacity:.5">第 ${i + 1} 程：未填</span>`;
+    return `第 ${i + 1} 程：${parts.join(' · ')}`;
+  });
+  box.innerHTML = lines.join('<br>');
+}
+function updateFlightFieldsVisibility() {
+  const cat = document.getElementById('e-cat').value;
+  const isFlight = cat === 'flight';
+  document.getElementById('flight-fields').classList.toggle('flight-hidden', !isFlight);
+  document.getElementById('flight-summary').classList.toggle('flight-hidden', !isFlight);
+  if (isFlight) updateFlightSummary();
+}
+
 function openExpenseModal(id = null) {
   editingExpenseId = id;
   const modal = document.getElementById('expense-modal');
@@ -1963,6 +2089,18 @@ function openExpenseModal(id = null) {
       document.getElementById('e-rooms').value = 1;
       document.getElementById('e-nights').value = 1;
     }
+    // Flight-specific fields (multi-leg)
+    if (x.category === 'flight') {
+      const existing = Array.isArray(x.flights) && x.flights.length ? x.flights
+        : (x.flightFrom || x.flightTo || x.flightNo)
+          ? [{ no: x.flightNo || '', from: x.flightFrom || '', to: x.flightTo || '' }]
+          : [{ no: '', from: '', to: '' }];
+      document.getElementById('e-flight-legs').value = String(Math.min(4, Math.max(1, existing.length)));
+      renderFlightLegs(existing);
+    } else {
+      document.getElementById('e-flight-legs').value = '1';
+      renderFlightLegs([{ no: '', from: '', to: '' }]);
+    }
     delBtn.style.display = '';
   } else {
     title.textContent = '新增開支';
@@ -1977,9 +2115,12 @@ function openExpenseModal(id = null) {
     document.getElementById('e-rate').value = '';
     document.getElementById('e-rooms').value = 1;
     document.getElementById('e-nights').value = 1;
+    document.getElementById('e-flight-legs').value = '1';
+    renderFlightLegs([{ no: '', from: '', to: '' }]);
     delBtn.style.display = 'none';
   }
   updateHotelFieldsVisibility();
+  updateFlightFieldsVisibility();
   modal.hidden = false;
 }
 function closeExpenseModal() {
@@ -1992,7 +2133,8 @@ function saveExpense() {
   if (!name) return toast('請輸入名稱');
 
   let amount;
-  let hotelExtras = {};
+  let hotelExtras = { roomRate: null, rooms: null, nights: null };
+  let flightExtras = { flights: null, flightNo: null, flightFrom: null, flightTo: null };
   if (category === 'hotel') {
     const rate = parseFloat(document.getElementById('e-rate').value);
     const rooms = parseInt(document.getElementById('e-rooms').value, 10) || 1;
@@ -2002,11 +2144,19 @@ function saveExpense() {
     if (nights < 1) return toast('晚數至少 1');
     amount = rate * rooms * nights;
     hotelExtras = { roomRate: rate, rooms, nights };
+  } else if (category === 'flight') {
+    amount = parseFloat(document.getElementById('e-amount').value);
+    if (isNaN(amount) || amount < 0) return toast('請輸入有效金額');
+    const legs = readFlightLegs().filter(l => l.no || l.from || l.to);
+    flightExtras = {
+      flights: legs,
+      flightNo:   (legs[0] && legs[0].no)   || null,
+      flightFrom: (legs[0] && legs[0].from) || null,
+      flightTo:   (legs[0] && legs[0].to)   || null
+    };
   } else {
     amount = parseFloat(document.getElementById('e-amount').value);
     if (isNaN(amount) || amount < 0) return toast('請輸入有效金額');
-    // Clear any stale hotel fields if user re-categorized away from hotel
-    hotelExtras = { roomRate: null, rooms: null, nights: null };
   }
 
   const data = {
@@ -2018,7 +2168,8 @@ function saveExpense() {
     status: document.getElementById('e-status').value,
     method: document.getElementById('e-method').value.trim(),
     note: document.getElementById('e-note').value.trim(),
-    ...hotelExtras
+    ...hotelExtras,
+    ...flightExtras
   };
 
   if (editingExpenseId) {
@@ -2031,6 +2182,8 @@ function saveExpense() {
   saveBudget();
   closeExpenseModal();
   renderBudget();
+  // Refresh map so newly added/edited flight legs appear as dashed lines.
+  try { if (activeDayIdx === -1 && typeof renderOverview === 'function') renderOverview(); else if (typeof renderMap === 'function') renderMap(); } catch (_) {}
   toast('已儲存');
 }
 function deleteExpense() {
@@ -2040,6 +2193,7 @@ function deleteExpense() {
   saveBudget();
   closeExpenseModal();
   renderBudget();
+  try { if (activeDayIdx === -1 && typeof renderOverview === 'function') renderOverview(); else if (typeof renderMap === 'function') renderMap(); } catch (_) {}
   toast('已刪除');
 }
 
@@ -2121,6 +2275,20 @@ function wireBudget() {
   document.getElementById('expense-modal').addEventListener('click', e => {
     if (e.target.id === 'expense-modal') closeExpenseModal();
   });
+
+  // Category change drives both hotel and flight visibility
+  document.getElementById('e-cat').addEventListener('change', () => {
+    updateHotelFieldsVisibility();
+    updateFlightFieldsVisibility();
+  });
+  // Hotel live total
+  ['e-rate','e-rooms','e-nights','e-currency'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { if (document.getElementById('e-cat').value === 'hotel') updateHotelTotal(); });
+    if (el) el.addEventListener('change', () => { if (document.getElementById('e-cat').value === 'hotel') updateHotelTotal(); });
+  });
+  // Flight legs count change — re-render the leg cards
+  document.getElementById('e-flight-legs').addEventListener('change', updateFlightLegsCount);
 }
 
 // --- Global Search ---
