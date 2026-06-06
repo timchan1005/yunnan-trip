@@ -193,22 +193,22 @@ body.on-map .navlinks a.active { background: var(--ink); color: var(--paper); }
 .hero-title {
   margin: 0;
   font-family: var(--font-serif);
-  line-height: 0.92;
-  letter-spacing: 0.01em;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
   text-shadow: 0 2px 30px rgba(0,0,0,0.35);
 }
 .hero-title-zh {
   display: block;
   font-weight: 900;
-  font-size: clamp(76px, 18vw, 220px);
+  font-size: clamp(60px, 11vw, 104px);
 }
 .hero-title-num {
   display: block;
   font-weight: 300;
-  font-size: clamp(40px, 9vw, 116px);
+  font-size: clamp(34px, 6vw, 72px);
   letter-spacing: 0.08em;
   color: rgba(255,255,255,0.95);
-  margin-top: -0.06em;
+  margin-top: 0.12em;
 }
 .hero-lede {
   font-family: var(--font-serif);
