@@ -1680,11 +1680,9 @@ html[data-theme="dark"] {
   .day-chip.active { background: var(--ink); color: #0f1115; }
   .day-chip-all.active { background: var(--accent-2); color: white; }
 
-  /* Brand title — swap gradient for warm light tones */
+  /* Brand title — solid warm parchment, restrained (no gradient text) */
   .brand-title {
-    background: linear-gradient(180deg, #f5e9d8 0%, #f0a366 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
+    color: #f3ead9;
   }
   .brand-mark {
     box-shadow:
@@ -1983,10 +1981,8 @@ html[data-theme="dark"] {
   font-weight: 700;
   font-size: 20px;
   letter-spacing: 0.06em;
-  background: linear-gradient(180deg, #1a1a1f 0%, #3a2918 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--ink);
+  white-space: nowrap;
   text-shadow: none;
 }
 .brand-sub {
@@ -2714,10 +2710,7 @@ html[data-theme="dark"] {
     border-bottom: 1px solid rgba(255,255,255,0.06);
   }
   .brand-title {
-    background: linear-gradient(180deg, #f5f0e6 0%, #d4d0c4 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #f3ead9;
   }
   .view-tabs { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
   .view-tab.active {
@@ -4188,4 +4181,45 @@ html[data-theme="dark"]  .share-tools .theme-toggle .theme-icon-sun  { display: 
     --ink: #ececef; --ink-2: #b8b9bf; --ink-3: #80828a; --line: #2a2f3a;
     --accent: #e2604c; --accent-2: #4f7cba; --teal: #4cc4b3; --gold: #ecb968; --danger: #e25c4a;
   }
+}
+
+/* =====================================================================
+   v=53 — dark-mode topbar word-colour + control-contrast fix
+   The reported issue: in dark mode the vertical-wrapping, gradient-clipped
+   brand title rendered loud-orange and clipped at the top, and several
+   icon controls (.share-btn, .map-quick-nav) leaned on undefined tokens
+   (--card / --paper-2) so they had no visible surface on dark — dim
+   icon-on-near-black. Brand title is now solid + nowrap (handled above);
+   here we give the icon controls a legible warm-dark surface + hairline,
+   and lift secondary glyphs from --ink-3 to --ink-2 so they read clearly.
+   No DOM/ID/behaviour changes. Light mode is untouched.
+   ===================================================================== */
+html[data-theme="dark"] {
+  /* Quick-nav capsule (back / 手繪 / 互動) — give it a real dark surface */
+  .map-quick-nav {
+    background: rgba(36, 40, 50, 0.85);
+    border-color: rgba(255, 255, 255, 0.10);
+  }
+  .mqn-link { color: var(--ink-2); }
+  .mqn-link svg { color: var(--ink-2); }
+  .mqn-link:hover { background: rgba(226, 96, 76, 0.16); color: #f0a87f; }
+
+  /* Driver-share + theme-toggle pills — real surface + visible hairline */
+  .share-btn {
+    background: rgba(36, 40, 50, 0.85);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--ink-2);
+  }
+  .share-btn svg { color: var(--ink-2); }
+  .share-btn:hover {
+    background: rgba(48, 54, 66, 0.92);
+    color: var(--ink);
+  }
+  .share-btn:hover svg { color: var(--ink); }
+
+  /* View-tabs container — lift the inactive 預算 glyph off the floor */
+  .view-tab { color: var(--ink-3); }
+  .view-tab svg { color: var(--ink-2); }
+  .view-tab:hover { color: var(--ink); }
+  .view-tab.active svg { color: var(--ink); }
 }

@@ -128,10 +128,10 @@ and no console errors**, click through landing → `#/map` drill-down, and on
 ## 9. Cache-busting / versioning  ← IMPORTANT, this caused the last bug
 
 - Local CSS/JS are loaded with a **`?v=<N>` query string** (e.g. `style.css?v=47`).
-  The number is a **site-wide release counter**, currently **`v52`** (dark mode +
-  toggle + chrome cleanup — see §17; v51 was the interactive-map colour alignment
-  in §16; v50 was the itinerary-menu refinement in §15; v49 was the cinematic pass
-  in §14).
+  The number is a **site-wide release counter**, currently **`v53`** (dark-mode
+  topbar word-colour + control-contrast fix — see §18; v52 was dark mode + toggle
+  + chrome cleanup in §17; v51 was the interactive-map colour alignment in §16;
+  v50 was the itinerary-menu refinement in §15; v49 was the cinematic pass in §14).
   On each release the convention is to bump **every**
   `?v=` across **both** `index.html` and `map.html` to the same number — even for
   files whose contents didn't change — so returning visitors never get a
@@ -394,3 +394,41 @@ removal of redundant chrome, and a homepage parallax-overflow fix.
   markers; GSAP loads with `gsap-ready`/`window.gsap` and **0 console errors**;
   chapters reach opacity>0 / visible in every path (incl. reduced-motion);
   **no horizontal overflow** anywhere. Screenshots in `/tmp/qa-shots/v52-*.png`.
+
+## 18. v53 dark-mode topbar word-colour + control-contrast fix (`map.html`)
+
+A targeted follow-up to v52's dark mode. A user screenshot showed the
+interactive-map topbar in dark mode with the `雲南十三日` brand title rendered
+**loud-orange, wrapped vertical (one CJK char per line) and clipped at the top
+edge**, plus dim icon controls. Two root causes, both pre-existing:
+
+- **Gradient-clipped brand text.** `.brand-title` used
+  `background:linear-gradient(...); -webkit-background-clip:text; color:transparent`
+  in three places (base cinematic block + the `html[data-theme="dark"]` override
+  + the `@media (prefers-color-scheme:dark)` no-JS fallback). The dark override's
+  gradient ended in `#f0a366` (loud orange), and **nothing set `white-space`**, so
+  when the topbar was cramped the title wrapped to 5 stacked characters and the
+  fixed-height bar clipped the top. **Fix:** all three now use a **solid** colour
+  (light: `var(--ink)`; dark: `#f3ead9` warm parchment) and the base rule adds
+  `white-space:nowrap`. No gradient text anywhere now (grep: zero
+  `background-clip` on `.brand-title`). The title is one line, fully inside the
+  60px bar (measured top:9→bottom:30).
+- **Icon controls leaning on undefined tokens.** `.share-btn` used
+  `background:var(--card)` (**`--card` is never defined** → transparent) with a
+  `rgba(0,0,0,0.08)` border (invisible on dark); `.map-quick-nav` used
+  `background:var(--paper-2, rgba(0,0,0,0.04))` (also near-invisible on dark).
+  In light mode they read as borderless text+icon (fine); in dark they vanished
+  into the near-black bar. **Fix:** an appended **v=53** `html[data-theme="dark"]`
+  block gives `.share-btn` / `.map-quick-nav` a real warm-dark surface
+  (`rgba(36,40,50,0.85)`) + a visible hairline (`rgba(255,255,255,0.10–0.12)`),
+  and lifts secondary glyphs (`.view-tab svg`, `.mqn-link svg`, `.share-btn svg`)
+  from `--ink-3` to `--ink-2`. Light mode is untouched (block is dark-scoped).
+- **No DOM/ID/behaviour changes.** All controls, IDs, day selection, theme
+  toggle, sync/share, and navigation preserved.
+- **QA.** Playwright dark mode at 1440 + 390: brand `rgb(243,234,217)` solid,
+  `white-space:nowrap`, `background-clip:border-box` (no text clip), one line,
+  fully inside the bar; `.share-btn`/`.map-quick-nav` now have visible dark
+  surfaces + borders; day-3 selection still updates markers; theme toggle still
+  flips; hand-drawn map (`#/map`) caption/eyebrow/sub legible on dark; **0 console
+  errors, no horizontal overflow**. Screenshots in
+  `/tmp/qa-shots/v53-{maptopbar,handmap}-{desktop,mobile}.png`.
