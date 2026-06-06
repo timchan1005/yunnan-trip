@@ -87,7 +87,7 @@ and no console errors**, click through landing → `#/map` drill-down, and on
 |---|---|
 | `index.html` | Landing page + hand-drawn map shell (`#/`, `#/map`) |
 | `map.html` | Interactive Leaflet map app shell |
-| `landing.css` | Styles for `index.html` (v48 editorial system + preserved ink-map drill-down styles below the divider comment) |
+| `landing.css` | Styles for `index.html` (editorial system + floating nav island + preserved ink-map drill-down styles below the divider comment) |
 | `style.css` | Styles for `map.html` |
 | `landing.js` | Landing reveal/parallax logic (GSAP + IO fallback) + per-chapter accent tinting + hash router + ink-map drill-down |
 | `app.js` | The interactive map app (largest file; map, budget, search, sync, print) |
@@ -128,8 +128,9 @@ and no console errors**, click through landing → `#/map` drill-down, and on
 ## 9. Cache-busting / versioning  ← IMPORTANT, this caused the last bug
 
 - Local CSS/JS are loaded with a **`?v=<N>` query string** (e.g. `style.css?v=47`).
-  The number is a **site-wide release counter**, currently **`v48`** (the editorial
-  landing redesign). On each release the convention is to bump **every**
+  The number is a **site-wide release counter**, currently **`v49`** (cinematic
+  pass: floating nav island, decluttered map topbar, GSAP scroll storytelling).
+  On each release the convention is to bump **every**
   `?v=` across **both** `index.html` and `map.html` to the same number — even for
   files whose contents didn't change — so returning visitors never get a
   half-old / half-new mix from cache.
@@ -196,6 +197,7 @@ cards). The `#/map` ink-drill-down view is unchanged.
   no flash-of-hidden-content in any path. Don't make content depend on GSAP.
 - **Nav** is transparent-over-hero and turns to a frosted paper bar on scroll
   (`.is-scrolled`); the brand mark tints to the chapter currently in view.
+  The nav was reworked in the v49 cinematic pass — see §14.
 - The big ink-map drill-down CSS lives **below the divider comment** in
   `landing.css` and is intentionally preserved — `landing.js` renders into those
   exact class hooks. Don't rename `.map-canvas-ink`, `.ink-pin*`, `.map-level`,
@@ -227,3 +229,39 @@ push/pull operate on the live in-memory snapshot. Only cross-reload *memory* of
 prior sync state is lost — acceptable for this single-trip app. The interactive
 map, search, base-layer toggles, and budget UI are unaffected by this change
 (they read/write the in-memory `expenses`/`state` the app already holds).
+
+## 14. v49 cinematic pass (nav declutter + GSAP storytelling)
+
+Three changes layered on the v48 editorial baseline. No content/data changes.
+
+- **Landing nav = floating island (`index.html` + `landing.css`).** Single-line,
+  height 58–64px (never >80). Left: `.brand` (mark + `.brand-title` +
+  `.brand-sub` date, hairline-divided; sub hides ≤560px). Right `.navlinks`:
+  a segmented pill `.navseg` (序章 / 手繪地圖, active state via `.navseg a.active`)
+  + a single `.navlinks-go` CTA (互動地圖 → `map.html`; collapses to a circular
+  icon ≤560px). `syncNav` still targets `.navlinks a[data-route]` — the segment
+  links are descendants, so routing is unchanged. Don't re-add per-link text
+  clutter; if you need a 3rd destination, add it to the segment, not as a 4th
+  loose link.
+- **Map topbar declutter (`map.html` + `style.css`).** `.topbar-inner` is one
+  row, height 60px: `.brand` · day chips · `.topbar-spacer` (flex:1) · right
+  cluster (`.view-tabs` 地圖/預算 → `.topbar-search` → `.sync-wrap` →
+  `.share-tools`). A `.topbar-search::before` hairline separates utility icons.
+  Labels collapse to icons at 1080px (share) / 920px (search + sync). **All
+  element IDs are unchanged** — `app.js` uses `getElementById`, so the DOM
+  reorder is safe; keep IDs stable if you move things again. Overrides live in a
+  `v=49` block appended at the **end** of `style.css` (it must come after the
+  ~line 1898 second-`:root` cinematic block to win the cascade).
+- **GSAP scroll storytelling (`landing.js`).** `initGsap()` runs inside a single
+  `gsap.context()` (revert on `pagehide` via `destroyGsap()`), and splits
+  behaviour with `gsap.matchMedia()`: desktop gets hero intro stagger, scrubbed
+  hero photo parallax/scale, per-chapter `clipPath` reveal + bg parallax + index
+  drift + copy stagger, and outro card stagger; mobile gets only a light chapter
+  bg parallax. **No pinning, no scroll hijacking, no `scroll` listener for
+  animation** (nav scroll-state is a `ScrollTrigger.create`, with a plain
+  passive `scroll` listener used *only* in the non-GSAP/reduced fallback). The
+  `.gsap-ready .chapter-text > *` rule forces content visible (transition:none)
+  so GSAP's `from` start-state, not CSS, owns the reveal — no
+  flash-of-hidden-content. Reduced-motion + no-GSAP both fall back to
+  IntersectionObserver `.is-visible` reveals (verified: chapters reach
+  opacity:1/visible).

@@ -441,13 +441,20 @@
   }
 
   // ---------- Top nav scroll state ----------
+  // When GSAP/ScrollTrigger drives the page (initGsap), the nav state is handled
+  // there. This listener is the fallback for the no-GSAP / reduced-motion path.
   function initTopnav() {
     const nav = $('topnav');
+    if (!nav) return;
+    const gsapWillDrive = !REDUCE_MOTION &&
+      typeof window.gsap !== 'undefined' && typeof window.ScrollTrigger !== 'undefined';
     const onScroll = () => {
       nav.classList.toggle('is-scrolled', (window.scrollY || 0) > 32);
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
+    if (!gsapWillDrive) {
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
   }
 
   const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -559,9 +566,13 @@
   }
 
   // ---------- GSAP / ScrollTrigger upgrade (progressive enhancement) ----------
-  // Only runs when GSAP loaded AND motion is allowed. Cleanup-safe: all triggers
-  // are killed if the landing view is torn down (it isn't, but kept tidy).
+  // Apple-Store-like scroll storytelling: scrubbed hero exit + photo parallax,
+  // cinematic per-chapter reveals (image clip-in + staggered copy), and a quiet
+  // outro stagger. Responsive behaviour is split with gsap.matchMedia(); all
+  // tweens/triggers live inside a gsap.context() so a single ctx.revert() cleans
+  // everything up. No scroll listeners are used for animation here.
   let gsapStarted = false;
+  let gsapCtx = null;
   function initGsap() {
     if (gsapStarted) return;
     if (REDUCE_MOTION) return;                 // honour reduced motion
@@ -569,42 +580,123 @@
     gsapStarted = true;
 
     const gsap = window.gsap;
-    gsap.registerPlugin(window.ScrollTrigger);
+    const ScrollTrigger = window.ScrollTrigger;
+    gsap.registerPlugin(ScrollTrigger);
     document.documentElement.classList.add('gsap-ready');
 
-    // Hero: intro stagger of the type lockup + parallax on the photo as you scroll.
-    const heroBits = gsap.utils.toArray('[data-hero]');
-    if (heroBits.length) {
-      gsap.set(heroBits, { y: 26, autoAlpha: 0 });
-      gsap.to(heroBits, { y: 0, autoAlpha: 1, duration: 1.1, ease: 'power3.out', stagger: 0.12, delay: 0.15 });
-    }
-    const heroImg = $('heroImg');
-    if (heroImg) {
-      gsap.to(heroImg, {
-        yPercent: 14, ease: 'none',
-        scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
-      });
-    }
-
-    // Chapters: drive the existing CSS reveal via .is-visible (toggleClass) so the
-    // markup stays the single source of truth, plus a gentle parallax on each photo.
-    gsap.utils.toArray('.chapter').forEach((ch) => {
-      window.ScrollTrigger.create({
-        trigger: ch,
-        start: 'top 78%',
-        onEnter: () => ch.classList.add('is-visible'),
-      });
-      const bg = ch.querySelector('.chapter-bg');
-      if (bg) {
-        gsap.fromTo(bg, { yPercent: -6 }, {
-          yPercent: 6, ease: 'none',
-          scrollTrigger: { trigger: ch, start: 'top bottom', end: 'bottom top', scrub: true },
+    gsapCtx = gsap.context(() => {
+      // Nav scroll-state, driven by ScrollTrigger instead of a scroll listener.
+      const nav = $('topnav');
+      if (nav) {
+        ScrollTrigger.create({
+          start: 'top -32',
+          end: 99999,
+          onUpdate: (self) => nav.classList.toggle('is-scrolled', self.progress > 0 || self.scroll() > 32),
+          onToggle: (self) => nav.classList.toggle('is-scrolled', self.isActive),
         });
       }
-    });
 
-    window.ScrollTrigger.refresh();
+      // Hero intro: a calm staggered rise of the type lockup once, on load.
+      const heroBits = gsap.utils.toArray('[data-hero]');
+      if (heroBits.length) {
+        gsap.set(heroBits, { y: 28, autoAlpha: 0 });
+        gsap.to(heroBits, { y: 0, autoAlpha: 1, duration: 1.15, ease: 'power3.out', stagger: 0.12, delay: 0.18 });
+      }
+
+      const mm = gsap.matchMedia();
+
+      // --- Desktop / tablet: full cinematic treatment ---
+      mm.add('(min-width: 721px) and (prefers-reduced-motion: no-preference)', () => {
+        // Hero photo drifts up and the content gently scales + fades as the
+        // first scene exits — the signature Apple-style scrubbed transition.
+        const heroImg = $('heroImg');
+        if (heroImg) {
+          gsap.to(heroImg, {
+            yPercent: 16, scale: 1.12, ease: 'none',
+            scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
+          });
+        }
+        const heroGrid = document.querySelector('.hero-grid');
+        if (heroGrid) {
+          gsap.to(heroGrid, {
+            yPercent: -8, autoAlpha: 0, ease: 'none',
+            scrollTrigger: { trigger: '.hero', start: 'center top', end: 'bottom top', scrub: true },
+          });
+        }
+
+        gsap.utils.toArray('.chapter').forEach((ch) => {
+          ch.classList.add('is-visible'); // CSS reveal still the source of truth
+          const media = ch.querySelector('.chapter-media');
+          const bg = ch.querySelector('.chapter-bg');
+          const idx = ch.querySelector('.chapter-index');
+          const copy = gsap.utils.toArray(ch.querySelectorAll('.chapter-text > *'));
+
+          // Image clips/scales into view — a filmic panel transition.
+          if (media) {
+            gsap.fromTo(media,
+              { clipPath: 'inset(8% 8% 8% 8% round 18px)', scale: 1.04 },
+              {
+                clipPath: 'inset(0% 0% 0% 0% round 0px)', scale: 1, ease: 'power2.out',
+                scrollTrigger: { trigger: ch, start: 'top 82%', end: 'top 42%', scrub: 0.6 },
+              });
+          }
+          // Slow photo parallax for depth.
+          if (bg) {
+            gsap.fromTo(bg, { yPercent: -7 }, {
+              yPercent: 7, ease: 'none',
+              scrollTrigger: { trigger: ch, start: 'top bottom', end: 'bottom top', scrub: true },
+            });
+          }
+          // Oversized chapter numeral drifts opposite the photo.
+          if (idx) {
+            gsap.fromTo(idx, { yPercent: 12 }, {
+              yPercent: -12, ease: 'none',
+              scrollTrigger: { trigger: ch, start: 'top bottom', end: 'bottom top', scrub: true },
+            });
+          }
+          // Copy rises in a soft stagger as the chapter enters.
+          if (copy.length) {
+            gsap.from(copy, {
+              y: 30, autoAlpha: 0, duration: 0.9, ease: 'power3.out', stagger: 0.09,
+              scrollTrigger: { trigger: ch, start: 'top 70%' },
+            });
+          }
+        });
+
+        // Outro cards settle in with a gentle stagger.
+        const cards = gsap.utils.toArray('.explore-card');
+        if (cards.length) {
+          gsap.from(cards, {
+            y: 36, autoAlpha: 0, duration: 0.9, ease: 'power3.out', stagger: 0.12,
+            scrollTrigger: { trigger: '.outro-grid', start: 'top 80%' },
+          });
+        }
+      });
+
+      // --- Mobile: lighter touch (no clip transitions, shorter parallax) ---
+      mm.add('(max-width: 720px) and (prefers-reduced-motion: no-preference)', () => {
+        gsap.utils.toArray('.chapter').forEach((ch) => {
+          ch.classList.add('is-visible');
+          const bg = ch.querySelector('.chapter-bg');
+          if (bg) {
+            gsap.fromTo(bg, { yPercent: -4 }, {
+              yPercent: 4, ease: 'none',
+              scrollTrigger: { trigger: ch, start: 'top bottom', end: 'bottom top', scrub: true },
+            });
+          }
+        });
+      });
+
+      ScrollTrigger.refresh();
+    });
   }
+
+  // Tidy teardown hook (kept for completeness; landing view is not torn down).
+  function destroyGsap() {
+    if (gsapCtx) { gsapCtx.revert(); gsapCtx = null; }
+    gsapStarted = false;
+  }
+  window.addEventListener('pagehide', destroyGsap);
 
   // ---------- Init ----------
   function init() {

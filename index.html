@@ -18,11 +18,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="preload" as="image" href="img/yn_city_1_kunming.webp">
 <link rel="preload" as="image" href="img/v28_spot_day11-s1_meili.webp">
-<link rel="stylesheet" href="landing.css?v=48">
+<link rel="stylesheet" href="landing.css?v=49">
 </head>
 <body class="on-landing">
 
-<!-- ====== Top navigation ====== -->
+<!-- ====== Top navigation — floating editorial masthead ====== -->
 <nav class="topnav" id="topnav">
   <a class="brand" href="#/">
     <span class="brand-mark" aria-hidden="true">
@@ -37,9 +37,13 @@
     </span>
   </a>
   <div class="navlinks">
-    <a href="#/" data-route="/">序章</a>
-    <a href="#/map" data-route="/map">手繪地圖</a>
-    <a class="navlinks-go" href="map.html">互動地圖<i aria-hidden="true">›</i></a>
+    <div class="navseg" role="group" aria-label="頁面">
+      <a href="#/" data-route="/">序章</a>
+      <a href="#/map" data-route="/map">手繪地圖</a>
+    </div>
+    <a class="navlinks-go" href="map.html">
+      <span>互動地圖</span><i aria-hidden="true">›</i>
+    </a>
   </div>
 </nav>
 
@@ -297,8 +301,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-<script src="data.js?v=48"></script>
-<script src="mapdata.js?v=48"></script>
-<script src="landing.js?v=48" defer></script>
+<script src="data.js?v=49"></script>
+<script src="mapdata.js?v=49"></script>
+<script src="landing.js?v=49" defer></script>
 </body>
 </html>

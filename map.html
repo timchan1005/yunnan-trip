@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=48">
+<link rel="stylesheet" href="style.css?v=49">
 </head>
 <body>
 
@@ -60,6 +60,23 @@
           <span>互動</span>
         </span>
       </nav>
+
+      <!-- Spacer pushes the primary view-toggle + utility cluster to the right -->
+      <div class="topbar-spacer" aria-hidden="true"></div>
+
+      <!-- Primary control leads the right cluster -->
+      <div class="view-tabs" role="tablist" aria-label="切換檢視">
+        <button class="view-tab active" data-view="map" role="tab" aria-selected="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          <span>地圖</span>
+        </button>
+        <button class="view-tab" data-view="budget" role="tab" aria-selected="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>預算</span>
+        </button>
+      </div>
+
+      <!-- Utility cluster: search · sync · share -->
       <div class="topbar-search">
         <button class="global-search-trigger" id="btn-global-search" aria-label="搜尋地點">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -86,16 +103,6 @@
             <span id="sync-device-label">裝置：</span>
           </button>
         </div>
-      </div>
-      <div class="view-tabs" role="tablist" aria-label="切換檢視">
-        <button class="view-tab active" data-view="map" role="tab" aria-selected="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-          <span>地圖</span>
-        </button>
-        <button class="view-tab" data-view="budget" role="tab" aria-selected="false">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          <span>預算</span>
-        </button>
       </div>
       <!-- v46: PDF + driver share buttons -->
       <div class="share-tools">
@@ -534,10 +541,10 @@
   </div>
 </div>
 
-<script src="data.js?v=48"></script>
-<script src="s2t.js?v=48"></script>
-<script src="sync.js?v=48"></script>
-<script src="app.js?v=48"></script>
+<script src="data.js?v=49"></script>
+<script src="s2t.js?v=49"></script>
+<script src="sync.js?v=49"></script>
+<script src="app.js?v=49"></script>
 
 </body>
 </html>

@@ -3727,3 +3727,104 @@ body.driver-mode .brand-title::after {
     font-weight: 600;
   }
 }
+
+/* =====================================================================
+   v=49 — Calm cinematic atlas: declutter the topbar + soften map controls
+   Wins the cascade (last in file). No DOM IDs or behaviour changed; this
+   is purely a layout/visual refinement over the existing header markup.
+   ===================================================================== */
+
+/* The spacer eats the slack between the page-switcher (left cluster) and
+   the primary control + utilities (right cluster), so the bar breathes
+   instead of stretching the search field across the middle. */
+.topbar-spacer { flex: 1 1 auto; min-width: 8px; }
+
+.topbar-inner {
+  height: 60px;
+  gap: 10px;
+}
+
+/* Search becomes a quiet, fixed-width pill — no longer the greediest item
+   in the bar. It sits with the utility cluster rather than dominating. */
+.topbar-search { flex: 0 0 auto; max-width: none; }
+.topbar-search .global-search-trigger {
+  width: auto;
+  min-width: 0;
+  padding: 8px 14px;
+}
+.topbar-search .global-search-trigger span {
+  max-width: 8.5em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hairline divider sets the primary view-toggle (left of the cluster)
+   apart from the utilities that follow, so the eye reads structure
+   instead of a wall of pills. */
+.topbar-search {
+  position: relative;
+  margin-left: 4px;
+  padding-left: 14px;
+}
+.topbar-search::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  width: 1px; height: 22px;
+  transform: translateY(-50%);
+  background: var(--line);
+}
+
+/* Sync + share read as one calm, evenly sized utility cluster. */
+.sync-badge,
+.share-btn,
+.topbar-search .global-search-trigger {
+  height: 36px;
+}
+.share-tools { gap: 6px; margin-left: 4px; }
+
+/* On laptops the share labels are noise next to icons in a packed bar —
+   collapse to icon-only earlier, keeping the bar single-line and roomy. */
+@media (max-width: 1080px) {
+  .share-btn span { display: none; }
+  .share-btn { padding: 0 10px; width: 36px; justify-content: center; }
+  .topbar-search .global-search-trigger span { max-width: 6em; }
+}
+@media (max-width: 920px) {
+  /* Below this the search label adds little; the magnifier reads clearly. */
+  .topbar-search .global-search-trigger span { display: none; }
+  .topbar-search .global-search-trigger { padding: 0 11px; width: 36px; justify-content: center; }
+  .sync-badge .sync-label { display: none; }
+  .sync-badge { padding: 0 10px; width: 36px; justify-content: center; }
+}
+
+/* ======== Map controls: softer, more atlas-like ======== */
+.layer-toggle {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid rgba(231, 226, 214, 0.7);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: var(--shadow-soft, 0 2px 4px rgba(45,30,18,0.04), 0 8px 24px rgba(45,30,18,0.06));
+}
+.layer-toggle button {
+  padding: 7px 13px;
+  border-radius: 9px;
+  letter-spacing: 0.04em;
+  transition: background 0.22s var(--easing, ease), color 0.22s var(--easing, ease);
+}
+.layer-toggle button.active {
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  .layer-toggle {
+    background: rgba(28, 31, 38, 0.86);
+    border-color: rgba(255,255,255,0.08);
+  }
+  .topbar-search::before { background: rgba(255,255,255,0.12); }
+}
