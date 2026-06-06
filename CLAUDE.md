@@ -128,8 +128,9 @@ and no console errors**, click through landing → `#/map` drill-down, and on
 ## 9. Cache-busting / versioning  ← IMPORTANT, this caused the last bug
 
 - Local CSS/JS are loaded with a **`?v=<N>` query string** (e.g. `style.css?v=47`).
-  The number is a **site-wide release counter**, currently **`v50`** (itinerary
-  menu refinement on `map.html` — see §15; v49 was the cinematic pass in §14).
+  The number is a **site-wide release counter**, currently **`v51`** (interactive
+  map colour alignment on `map.html` — see §16; v50 was the itinerary-menu
+  refinement in §15; v49 was the cinematic pass in §14).
   On each release the convention is to bump **every**
   `?v=` across **both** `index.html` and `map.html` to the same number — even for
   files whose contents didn't change — so returning visitors never get a
@@ -302,3 +303,38 @@ route/marker updates, sync, and share are untouched.
   `border-left` `0px`, selecting Day 3 updates the active chip + map markers,
   drawer opens on mobile, day picker opens and selects, no console errors, no
   overflow. Screenshots in `/tmp/qa-shots/itin-*.png`.
+
+## 16. v51 interactive-map colour alignment (`map.html` map surface)
+
+Purely visual: bring the Leaflet map surface in line with the warm
+ink/stone/terracotta palette used by the landing and the rest of `map.html`.
+**No DOM, ID, class-hook, JS, or behaviour changes.**
+
+- **What was already aligned (no change needed).** The page bg (`--bg #faf7f2`),
+  topbar, `.view-tabs`, day chips, drawer, and budget were already on the
+  v49/v50 warm tokens. The route polylines and markers in `app.js` are also
+  already palette-correct — `drawCasedRoute` casing is ink `#0b1426` + white halo
+  + a `day.color` core (each day's accent matches the landing chapters), and
+  `CATEGORIES` colours reuse the base tokens. **No JS colour constants were
+  touched.**
+- **What was the real mismatch.** Leaflet's own chrome — the zoom `+`/`-` bar,
+  the attribution control, and the popup tip — was only restyled inside the
+  `prefers-color-scheme: dark` block. In **light** mode it fell back to Leaflet's
+  default white box / blue zoom glyphs / blue attribution links, which is the
+  "default-Leaflet-looking control" the brief flagged.
+- **Where the CSS lives.** A `v=51` block appended at the **very end** of
+  `style.css` (after the §15 v=50 block) so it wins the cascade. It styles, for
+  **both** light and dark: `.leaflet-bar` (warm-glass rounded capsule, ink
+  glyphs, hairline dividers, disabled state), `.leaflet-control-attribution`
+  (warm stone glass, `--ink-3` text, indigo links), `.leaflet-popup-tip` /
+  `-close-button`, and `.leaflet-control-scale-line`. It also nudges
+  `.spot-tag.time` from the brighter `--teal #2a9d8f` to the warm `--yn-jade
+  #2d8a87` used across the redesign.
+- **QA.** Playwright at 1440 + 390: zoom bg now `rgba(255,255,255,0.78)`
+  (`--yn-glass`) with `--ink-2` glyphs and a 12px parent radius; attribution bg
+  `rgba(243,237,225,0.82)` warm stone; 32/28 markers and 39 route paths render
+  against the basemap; selecting Day 3 → 12 markers (day selection intact); no
+  console errors; no page-level horizontal overflow (the only `getBoundingClientRect`
+  hits are Leaflet tiles inside `#map` and day chips inside the `overflow-x:auto`
+  `.day-rail`, both intentional scroll containers). Screenshots in
+  `/tmp/qa-shots/mapcolor-*.png`.

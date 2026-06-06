@@ -4145,3 +4145,95 @@ body.driver-mode .brand-title::after {
   .dpp-row.active .dpp-name { color: #e8826e; }
   .spot-actions .icon-btn:hover { background: rgba(226,96,76,0.16); color: #e8826e; }
 }
+
+/* =====================================================================
+   v=51 — Interactive-map colour alignment
+   Brings the map.html map surface in line with the warm ink/stone/
+   terracotta landing palette. The page bg, topbar, tabs, day chips,
+   drawer, and budget were already on the v49/v50 warm tokens; the
+   remaining mismatch was Leaflet's own chrome (zoom +/-, attribution,
+   popup tip) showing default white/blue in LIGHT mode — only the dark
+   block had styled them. We finish the job for light mode and unify the
+   "time" jade so it reads as the warm --yn-jade rather than a brighter
+   sea-green. No DOM/ID/behaviour changes; route/marker colours in app.js
+   are already palette-correct (ink casing #0b1426, day.color accents).
+   ===================================================================== */
+
+/* Leaflet zoom control — warm stone buttons, ink glyphs (light mode) */
+.leaflet-bar {
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-soft) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+.leaflet-bar a,
+.leaflet-touch .leaflet-bar a {
+  background: var(--yn-glass) !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--ink-2) !important;
+  border-bottom: 1px solid var(--line) !important;
+  font-weight: 600;
+  transition: background 0.15s var(--easing), color 0.15s var(--easing);
+}
+.leaflet-bar a:last-child { border-bottom: none !important; }
+.leaflet-bar a:hover {
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+}
+.leaflet-bar a.leaflet-disabled {
+  background: var(--surface-2) !important;
+  color: var(--ink-3) !important;
+}
+
+/* Leaflet attribution — quiet warm glass, ink links (light mode) */
+.leaflet-control-attribution {
+  background: rgba(243, 237, 225, 0.82) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--ink-3) !important;
+  border-top-left-radius: 8px;
+}
+.leaflet-control-attribution a { color: var(--yn-indigo) !important; }
+
+/* Leaflet popup tip + close — match the warm card surface */
+.leaflet-popup-tip { box-shadow: var(--shadow-soft); }
+.leaflet-popup-content-wrapper { box-shadow: var(--shadow-elev); }
+.leaflet-popup-close-button { color: var(--ink-3) !important; }
+.leaflet-popup-close-button:hover { color: var(--accent) !important; }
+
+/* "Time" tag: align to the warm jade used across the redesign */
+.spot-tag.time { background: rgba(45, 138, 135, 0.10); color: var(--yn-jade); }
+
+/* Scale (km ruler) control, if shown — warm hairline */
+.leaflet-control-scale-line {
+  border: 1px solid var(--line) !important;
+  border-top: none !important;
+  background: rgba(243, 237, 225, 0.7) !important;
+  color: var(--ink-2) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .leaflet-bar {
+    border-color: var(--line) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.45) !important;
+  }
+  .leaflet-bar a,
+  .leaflet-touch .leaflet-bar a {
+    background: rgba(24, 27, 34, 0.85) !important;
+    color: var(--ink-2) !important;
+    border-bottom-color: var(--line) !important;
+  }
+  .leaflet-bar a:hover { background: var(--surface-2) !important; color: var(--ink) !important; }
+  .leaflet-bar a.leaflet-disabled { background: rgba(24,27,34,0.6) !important; color: var(--ink-3) !important; }
+  .leaflet-control-attribution {
+    background: rgba(20, 22, 28, 0.82) !important;
+    color: var(--ink-3) !important;
+  }
+  .leaflet-control-attribution a { color: var(--accent-2) !important; }
+  .leaflet-control-scale-line {
+    background: rgba(20, 22, 28, 0.7) !important;
+    color: var(--ink-2) !important;
+  }
+  .spot-tag.time { background: rgba(76, 196, 179, 0.16); color: var(--teal); }
+}
