@@ -1208,6 +1208,13 @@ html[data-theme="dark"] .map-canvas-ink {
   box-shadow: 0 22px 52px rgba(0,0,0,0.55), 0 0 0 1px var(--line);
 }
 html[data-theme="dark"] .map-crumb { background: rgba(20, 17, 12, 0.82); }
+/* The place-name pills stay light (they sit on the light watercolour), so their
+   text must stay a dark ink. Following the --ink token flips it light in dark
+   mode and washed the labels out (麗江/香格里拉/大理/瀘沽湖/昆明). */
+html[data-theme="dark"] .ink-pin-name { color: #2a2118; }
+html[data-theme="dark"] .ink-pin-drill .ink-pin-name {
+  background-image: linear-gradient(transparent 86%, rgba(168,67,31,0.55) 86%);
+}
 
 /* No-JS fallback: mirror the key hardcoded-surface fixes under the media query */
 @media (prefers-color-scheme: dark) {
@@ -1224,4 +1231,5 @@ html[data-theme="dark"] .map-crumb { background: rgba(20, 17, 12, 0.82); }
     box-shadow: 0 22px 52px rgba(0,0,0,0.55), 0 0 0 1px var(--line);
   }
   :root:not([data-theme="light"]) .map-crumb { background: rgba(20, 17, 12, 0.82); }
+  :root:not([data-theme="light"]) .ink-pin-name { color: #2a2118; }
 }

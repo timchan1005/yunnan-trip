@@ -128,9 +128,10 @@ and no console errors**, click through landing → `#/map` drill-down, and on
 ## 9. Cache-busting / versioning  ← IMPORTANT, this caused the last bug
 
 - Local CSS/JS are loaded with a **`?v=<N>` query string** (e.g. `style.css?v=47`).
-  The number is a **site-wide release counter**, currently **`v53`** (dark-mode
-  topbar word-colour + control-contrast fix — see §18; v52 was dark mode + toggle
-  + chrome cleanup in §17; v51 was the interactive-map colour alignment in §16;
+  The number is a **site-wide release counter**, currently **`v54`** (dark-mode
+  hand-drawn-map label-contrast fix — see §19; v53 was the topbar word-colour +
+  control-contrast fix in §18; v52 was dark mode + toggle + chrome cleanup in §17;
+  v51 was the interactive-map colour alignment in §16;
   v50 was the itinerary-menu refinement in §15; v49 was the cinematic pass in §14).
   On each release the convention is to bump **every**
   `?v=` across **both** `index.html` and `map.html` to the same number — even for
@@ -432,3 +433,39 @@ edge**, plus dim icon controls. Two root causes, both pre-existing:
   flips; hand-drawn map (`#/map`) caption/eyebrow/sub legible on dark; **0 console
   errors, no horizontal overflow**. Screenshots in
   `/tmp/qa-shots/v53-{maptopbar,handmap}-{desktop,mobile}.png`.
+
+## 19. v54 dark-mode hand-drawn-map label-contrast fix (`landing.css`)
+
+A targeted follow-up to v52/v53. A user screenshot showed the landing hand-drawn
+map (`#/map`) overview in dark mode with the region place-name labels (麗江,
+香格里拉, 瀘沽湖, 大理, 昆明) **washed out / almost invisible** — light text on a
+light pill.
+
+- **Root cause (pre-existing, only surfaced in dark).** Each overview pin renders
+  as `.ink-pin-region` > `.ink-pin-label` (a pill) > `.ink-pin-name` (the text).
+  `.ink-pin-name` uses `color: var(--ink)`, and the pill `.ink-pin-label`
+  background is a **hardcoded light** `rgba(255,250,244,0.96)` (it sits on the
+  light watercolour map art, which can't be themed). In dark mode `--ink` flips to
+  a light parchment tone, so the text became light-on-light and vanished. The pill
+  itself is intentionally light (the map illustration underneath stays light), so
+  the right fix is to pin the **text** dark, not lighten the pill.
+- **Fix.** Two dark-scoped rules appended to the existing dark block in
+  `landing.css`: `html[data-theme="dark"] .ink-pin-name { color: #2a2118; }` (warm
+  dark ink, not pure black) plus a re-statement of the drill-pin underline
+  (`.ink-pin-drill .ink-pin-name` terracotta underline) so it survives the colour
+  override. Mirrored under the no-JS fallback
+  (`:root:not([data-theme="light"]) .ink-pin-name { color: #2a2118; }`). Light mode
+  is untouched (rules are dark-scoped). The spot-level `.spt-bubble` was already
+  dark-safe (dark bg + white text); breadcrumb/caption/eyebrow/back-button were
+  already legible (verified).
+- **No DOM/ID/behaviour/map-data changes.** Drill-down navigation, theme toggle,
+  routing all preserved.
+- **No gradient text, side stripes, decorative dots, over-glow, over-rounding, or
+  em dashes** introduced.
+- **QA.** Playwright `#/map` at mobile-dark (390), desktop-dark (1440), and
+  mobile-light (390): all five region labels measured **contrast 15.22** on dark
+  (was washed-out) and **17.34** on light against the light pill (WCAG AAA);
+  `data-theme` correct; clicking a region still drills into the region level; **0
+  console errors; no horizontal overflow** at either viewport; light mode
+  unchanged. Screenshots in `/tmp/qa-shots/v54-overview-{mobile-dark,mobile-light}.png`
+  and `/tmp/qa-shots/v54-handmap-{mobile,desktop}-{dark,light}.png`.
