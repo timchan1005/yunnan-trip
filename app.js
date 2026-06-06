@@ -1686,11 +1686,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('drawer').classList.add('open');
   }
 
-  // v46: wire share + print buttons
+  // v46: wire share button
   const btnShare = document.getElementById('btn-share-driver');
   if (btnShare) btnShare.addEventListener('click', copyDriverLink);
-  const btnPrint = document.getElementById('btn-print');
-  if (btnPrint) btnPrint.addEventListener('click', handlePrint);
+
+  // v52: theme toggle (session-only; no storage — sandbox-safe)
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    const syncTheme = () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      themeBtn.setAttribute('aria-pressed', String(dark));
+      themeBtn.setAttribute('aria-label', dark ? '切換淺色模式' : '切換深色模式');
+      themeBtn.setAttribute('title', dark ? '切換淺色模式' : '切換深色模式');
+    };
+    themeBtn.addEventListener('click', () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+      syncTheme();
+    });
+    syncTheme();
+  }
 
   // v46: wire check-in modal
   const ciClose = document.getElementById('btn-close-checkin');
@@ -2603,12 +2618,6 @@ function copyDriverLink() {
   } else {
     prompt('司機連結', link);
   }
-}
-
-function handlePrint() {
-  // Make sure drawer is open + budget view rendered
-  if (typeof openDrawer === 'function') openDrawer();
-  setTimeout(() => window.print(), 200);
 }
 
 /* ---- Expense modal ---- */

@@ -128,9 +128,10 @@ and no console errors**, click through landing → `#/map` drill-down, and on
 ## 9. Cache-busting / versioning  ← IMPORTANT, this caused the last bug
 
 - Local CSS/JS are loaded with a **`?v=<N>` query string** (e.g. `style.css?v=47`).
-  The number is a **site-wide release counter**, currently **`v51`** (interactive
-  map colour alignment on `map.html` — see §16; v50 was the itinerary-menu
-  refinement in §15; v49 was the cinematic pass in §14).
+  The number is a **site-wide release counter**, currently **`v52`** (dark mode +
+  toggle + chrome cleanup — see §17; v51 was the interactive-map colour alignment
+  in §16; v50 was the itinerary-menu refinement in §15; v49 was the cinematic pass
+  in §14).
   On each release the convention is to bump **every**
   `?v=` across **both** `index.html` and `map.html` to the same number — even for
   files whose contents didn't change — so returning visitors never get a
@@ -338,3 +339,58 @@ ink/stone/terracotta palette used by the landing and the rest of `map.html`.
   hits are Leaflet tiles inside `#map` and day chips inside the `overflow-x:auto`
   `.day-rail`, both intentional scroll containers). Screenshots in
   `/tmp/qa-shots/mapcolor-*.png`.
+
+## 17. v52 dark mode + chrome cleanup (all pages)
+
+Three things: a full warm dark theme with a visible toggle across **both** pages,
+removal of redundant chrome, and a homepage parallax-overflow fix.
+
+- **Theme architecture (sandbox-safe, NO Web Storage).** A tiny inline `<head>`
+  script in **both** `index.html` and `map.html` resolves the initial theme from
+  `matchMedia('(prefers-color-scheme: dark)')` and sets
+  `document.documentElement.dataset.theme` (`'light'`/`'dark'`) **before paint**
+  (no FOUC). A visible sun/moon `#themeToggle` button flips `data-theme` for the
+  session only — **no `localStorage`/`sessionStorage`/cookies** (sandbox forbids
+  them, §13), so the theme resets to the OS preference on reload. That is the
+  intended, accepted behaviour. Toggle wiring is in `landing.js` (`initThemeToggle`)
+  for the landing and `app.js` (after the share-button wiring) for the map; both
+  update `aria-pressed` + `aria-label` + `title`.
+- **CSS keys off `html[data-theme="dark"]`** (authoritative — the inline script
+  always sets it, so the toggle always wins the cascade). A
+  `@media (prefers-color-scheme: dark) { html:not([data-theme]) { … } }` block is
+  the no-JS fallback (script disabled → no `data-theme` attr → media query applies).
+  - **`landing.css`** — appended v52 block: `:root[data-theme="dark"]` token
+    overrides in **warm** values (`--paper #14110c`, `--ink #f1ebdf`, terracotta
+    `--sunset #e07a4f`, `--jade #3ba39c`, lifted `--indigo #6f9bd1`) — NOT generic
+    black/blue. Deepened chapter/hero/explore scrims so overlaid white text stays
+    WCAG-legible on dark; dark glass nav (`rgba(20,17,12,0.82)`), `.navseg`,
+    ink-map drill-down surfaces, and crumb. `.theme-toggle` button styles (38px
+    round, glass over hero) + icon show/hide via `html[data-theme]`.
+  - **`style.css`** — the former `@media (prefers-color-scheme: dark)` blocks were
+    **converted to `html[data-theme="dark"] { … }`** using **native CSS nesting**
+    (Chrome 120+/Safari 17.2+/FF 117+) so the toggle drives them; tokens are set
+    directly on the outer selector (a nested bare `:root` is invalid). The v51
+    Leaflet dark sub-block was converted too. Appended v52 block adds the
+    `.theme-toggle` icon show/hide + a `@media … html:not([data-theme])` no-JS
+    fallback. The OSM/satellite tiles themselves stay light (can't theme raster
+    tiles); only Leaflet chrome + app UI darken — expected.
+- **Removed chrome.** The PDF **print button** (`#btn-print`) is gone from
+  `map.html`, plus its `app.js` wiring + `handlePrint()` and the entire
+  `@media print { … }` block in `style.css` (which also held the last
+  `雲南之旅` string). The redundant **`雲南之旅`** title/brand was realigned to
+  the landing identity **`雲南十三日`** (`map.html` `<title>` + `.brand-title`,
+  `landing.js` `document.title`). Grep confirms zero `btn-print` / `handlePrint`
+  / `雲南之旅` / `@media print` remain.
+- **Homepage overflow fix.** The GSAP chapter reveal animates `.chapter-media`
+  from `scale:1.04` (a `from` start-state), which made each below-the-fold media
+  panel ~14px wider than its grid cell and pushed the desktop document to 1454px.
+  Added `overflow: clip` to `.chapter` so the scaled child is clipped to its cell;
+  desktop doc is now exactly 1440px. Homepage chapters + GSAP were otherwise only
+  **verified** (already cinematic from v48/v49), not rebuilt.
+- **QA.** Playwright at 1440 + 390, `colorScheme` light **and** dark (plus a
+  `reducedMotion:'reduce'` dark pass): both pages render warm-dark; `data-theme`
+  set correctly; toggle flips theme live with `aria-pressed` updating; print
+  button + `雲南之旅` gone (DOM assertions); map day-3 selection still updates
+  markers; GSAP loads with `gsap-ready`/`window.gsap` and **0 console errors**;
+  chapters reach opacity>0 / visible in every path (incl. reduced-motion);
+  **no horizontal overflow** anywhere. Screenshots in `/tmp/qa-shots/v52-*.png`.

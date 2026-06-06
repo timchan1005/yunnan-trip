@@ -1646,25 +1646,28 @@ body.view-budget .fab {
   margin-top: 2px;
 }
 
-/* ============ Dark mode (auto, via prefers-color-scheme) ============ */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1115;
-    --surface: #181b22;
-    --surface-2: #232732;
-    --ink: #ececef;
-    --ink-2: #b8b9bf;
-    --ink-3: #80828a;
-    --line: #2a2f3a;
-    --accent: #e2604c;        /* slightly brighter Yunnan red */
-    --accent-2: #4f7cba;      /* lifted indigo for contrast */
-    --teal: #4cc4b3;
-    --gold: #ecb968;
-    --danger: #e25c4a;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.35);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55), 0 12px 32px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.7);
-  }
+/* ============ Dark mode ============
+   Driven by html[data-theme="dark"], which the inline <head> script in
+   map.html sets from the OS prefers-color-scheme on load, and which the
+   nav theme toggle flips for the session (no storage — sandbox-safe per
+   §13). A prefers-color-scheme token fallback for the no-JS case lives in
+   the appended v=52 block at the end of this file. ============ */
+html[data-theme="dark"] {
+  --bg: #0f1115;
+  --surface: #181b22;
+  --surface-2: #232732;
+  --ink: #ececef;
+  --ink-2: #b8b9bf;
+  --ink-3: #80828a;
+  --line: #2a2f3a;
+  --accent: #e2604c;        /* slightly brighter Yunnan red */
+  --accent-2: #4f7cba;      /* lifted indigo for contrast */
+  --teal: #4cc4b3;
+  --gold: #ecb968;
+  --danger: #e25c4a;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.7);
 
   /* Map base color while tiles load */
   #map { background: #1a1d24; }
@@ -3656,77 +3659,6 @@ body.driver-mode .brand-title::after {
   font-weight: 500;
 }
 
-/* ===== v46: print stylesheet ===== */
-@media print {
-  @page { margin: 12mm; }
-  body {
-    background: white !important;
-    color: #1d3557 !important;
-  }
-  .topbar,
-  .view-tabs,
-  .share-tools,
-  .topbar-search,
-  .sync-wrap,
-  .map-quick-nav,
-  .map-wrap,
-  .layer-toggle,
-  .fab,
-  .drawer-toggle,
-  #btn-close-drawer,
-  .modal,
-  .global-search-overlay,
-  .day-rail-wrap,
-  .breakdown-card,
-  .budget-summary,
-  .bva-card,
-  .burn-card,
-  .sanity-card,
-  .checklist-card,
-  .budget-toolbar,
-  .expense-list,
-  .budget-foot,
-  .spot-actions,
-  .toast,
-  .toast-container {
-    display: none !important;
-  }
-  .drawer {
-    position: static !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    box-shadow: none !important;
-    border: 0 !important;
-    background: white !important;
-    transform: none !important;
-  }
-  .drawer-body {
-    overflow: visible !important;
-    height: auto !important;
-  }
-  .day-card {
-    page-break-inside: avoid;
-    break-inside: avoid;
-    box-shadow: none !important;
-    border: 1px solid rgba(0,0,0,0.1) !important;
-    margin-bottom: 12px !important;
-  }
-  .spot-row {
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-  }
-  .ci-thumb { max-width: 80px !important; }
-  body::before {
-    content: "雲南之旅 · 2026/10/10 – 10/22 · 13 日完整行程";
-    display: block;
-    font-size: 14px;
-    color: #1d3557;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(0,0,0,0.15);
-    font-weight: 600;
-  }
-}
 
 /* =====================================================================
    v=49 — Calm cinematic atlas: declutter the topbar + soften map controls
@@ -4213,7 +4145,7 @@ body.driver-mode .brand-title::after {
   color: var(--ink-2) !important;
 }
 
-@media (prefers-color-scheme: dark) {
+html[data-theme="dark"] {
   .leaflet-bar {
     border-color: var(--line) !important;
     box-shadow: 0 2px 10px rgba(0,0,0,0.45) !important;
@@ -4236,4 +4168,24 @@ body.driver-mode .brand-title::after {
     color: var(--ink-2) !important;
   }
   .spot-tag.time { background: rgba(76, 196, 179, 0.16); color: var(--teal); }
+}
+
+/* =====================================================================
+   v=52 — theme-toggle button + no-JS dark fallback (map.html)
+   The main dark rules above key off html[data-theme="dark"] (set by the
+   inline head script from the OS preference, flipped by the toggle). For
+   the rare no-JS case where data-theme is never set, mirror just the
+   token overrides under prefers-color-scheme so a dark-OS still gets a
+   warm-dark map shell. ===================================================================== */
+.share-tools .theme-toggle .theme-icon-sun,
+.share-tools .theme-toggle .theme-icon-moon { display: none; }
+html[data-theme="light"] .share-tools .theme-toggle .theme-icon-moon { display: block; }
+html[data-theme="dark"]  .share-tools .theme-toggle .theme-icon-sun  { display: block; }
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    --bg: #0f1115; --surface: #181b22; --surface-2: #232732;
+    --ink: #ececef; --ink-2: #b8b9bf; --ink-3: #80828a; --line: #2a2f3a;
+    --accent: #e2604c; --accent-2: #4f7cba; --teal: #4cc4b3; --gold: #ecb968; --danger: #e25c4a;
+  }
 }

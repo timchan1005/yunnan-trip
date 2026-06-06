@@ -1,5 +1,5 @@
 /* ============================================================
-   雲南之旅 · landing.js (v29)
+   雲南十三日 · landing.js
    - Hash router: #/  #/map  #/map/{region}  #/map/{region}/{spot}
    - Scroll observers (sticky reveal + parallax)
    - 3-level map drill-down:
@@ -58,7 +58,7 @@
     $('view-map').classList.remove('is-active');
     document.body.classList.remove('on-map');
     syncNav('/');
-    document.title = '雲南之旅 · 2026 秋';
+    document.title = '雲南十三日 · 2026 秋';
   }
 
   function activateMap(r) {
@@ -698,9 +698,28 @@
   }
   window.addEventListener('pagehide', destroyGsap);
 
+  // ---------- Theme toggle (session-only; no storage — sandbox-safe) ----------
+  function initThemeToggle() {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    const sync = () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      btn.setAttribute('aria-pressed', String(dark));
+      btn.setAttribute('aria-label', dark ? '切換淺色模式' : '切換深色模式');
+      btn.setAttribute('title', dark ? '切換淺色模式' : '切換深色模式');
+    };
+    btn.addEventListener('click', () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+      sync();
+    });
+    sync();
+  }
+
   // ---------- Init ----------
   function init() {
     initTopnav();
+    initThemeToggle();
     initAccents();
     initStats();
     initChapterReveals();
