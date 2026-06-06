@@ -128,8 +128,8 @@ and no console errors**, click through landing → `#/map` drill-down, and on
 ## 9. Cache-busting / versioning  ← IMPORTANT, this caused the last bug
 
 - Local CSS/JS are loaded with a **`?v=<N>` query string** (e.g. `style.css?v=47`).
-  The number is a **site-wide release counter**, currently **`v49`** (cinematic
-  pass: floating nav island, decluttered map topbar, GSAP scroll storytelling).
+  The number is a **site-wide release counter**, currently **`v50`** (itinerary
+  menu refinement on `map.html` — see §15; v49 was the cinematic pass in §14).
   On each release the convention is to bump **every**
   `?v=` across **both** `index.html` and `map.html` to the same number — even for
   files whose contents didn't change — so returning visitors never get a
@@ -265,3 +265,40 @@ Three changes layered on the v48 editorial baseline. No content/data changes.
   flash-of-hidden-content. Reduced-motion + no-GSAP both fall back to
   IntersectionObserver `.is-visible` reveals (verified: chapters reach
   opacity:1/visible).
+
+## 15. v50 itinerary-menu refinement (`map.html` day menu)
+
+Purely visual restyle of the interactive map's day/itinerary menu to match the
+warm ink/stone/terracotta landing palette. **No DOM, ID, class-hook, or
+behaviour changes** — `app.js` (`renderDayRail`, `renderDrawer`, `buildSpotRow`,
+`openDayPicker`) renders the exact same markup; day selection, map focus,
+route/marker updates, sync, and share are untouched.
+
+- **Where the CSS lives.** A `v=50` block appended at the **very end** of
+  `style.css` (after the §14 `v=49` block) so it wins the cascade. It refines:
+  the drawer shell (mobile bottom sheet + desktop 380px right rail), `.day-card`
+  / `.day-card-head` / `.day-num` / `.day-meta`, `.spot-row` / `.spot-bullet` /
+  `.spot-name` / `.spot-note`, all `.spot-tag` variants, `.day-weather`,
+  `.spot-actions`, the `.day-chip` rail, and the mobile `.day-picker` sheet, plus
+  a `prefers-color-scheme: dark` harmonisation block.
+- **Anti-patterns deliberately removed** (the brief called these out): the 4px
+  gradient side-stripe on `.day-card-head::before` (now `content:none`), the
+  `border-left` stripe on `.spot-row` (now `none`, replaced by a soft background
+  wash on hover + hairline `border-top` dividers between rows), and the heavy
+  gradient-filled `.day-num` squircle (now a flat serif numeral on a white/stone
+  disc with a thin ink ring and a small terracotta accent tick).
+- **Per-day colour.** The picker dots and rail still read each day's colour from
+  the inline `style="background:${d.color}"` / `data-color` that `app.js` sets —
+  these match the landing chapter accents. The `.day-num` accent tick is a static
+  terracotta (CSS can't read the `data-color` *attribute* as a variable without a
+  JS change, and a single warm tick keeps the rail calm).
+- **Overflow fix.** Long `.spot-tag.hours` strings (e.g. opening-hours + notes)
+  were `white-space:nowrap` and pushed past the 380px rail. The block sets the
+  hours tag to wrap (`white-space:normal; overflow-wrap:anywhere`) and adds
+  `min-width:0` + `overflow-wrap:anywhere` to `.spot-name`/`.spot-info`. Verified
+  zero horizontal overflow in the drawer at 1440 and 390 widths.
+- **QA.** Playwright at 1440 (right rail) and 390 (bottom sheet): day-card count
+  13, day-num is a flat white disc (no gradient), head stripe `none`, row
+  `border-left` `0px`, selecting Day 3 updates the active chip + map markers,
+  drawer opens on mobile, day picker opens and selects, no console errors, no
+  overflow. Screenshots in `/tmp/qa-shots/itin-*.png`.
