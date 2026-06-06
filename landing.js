@@ -450,7 +450,37 @@
     onScroll();
   }
 
-  // ---------- Stats counter animation ----------
+  const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Propagate each chapter's accent colour to its own --accent custom property,
+  // and tint the global nav/brand to the chapter currently in view.
+  function initAccents() {
+    const chapters = Array.from(document.querySelectorAll('.chapter[data-accent]'));
+    chapters.forEach((c) => c.style.setProperty('--accent', c.dataset.accent));
+    if (!chapters.length) return;
+
+    const brandMark = document.querySelector('.brand-mark');
+    const defaultAccent = getComputedStyle(document.documentElement)
+      .getPropertyValue('--sunset').trim() || '#c75b3a';
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting && e.intersectionRatio > 0.5) {
+          if (brandMark) brandMark.style.background = e.target.dataset.accent;
+        }
+      });
+    }, { threshold: [0.5] });
+    chapters.forEach((c) => io.observe(c));
+    // Reset brand accent when scrolled above the first chapter (hero/ledger).
+    const ledger = $('ledger');
+    if (ledger && brandMark) {
+      const topIo = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) brandMark.style.background = defaultAccent; });
+      }, { threshold: 0.4 });
+      topIo.observe(ledger);
+    }
+  }
+
+  // ---------- Stats counter animation (ledger) ----------
   function initStats() {
     const stats = document.querySelectorAll('[data-stat]');
     if (!stats.length) return;
@@ -460,8 +490,13 @@
           e.target.classList.add('is-visible');
           const counter = e.target.querySelector('[data-count]');
           if (counter && !counter.dataset.done) {
-            animateCount(counter);
             counter.dataset.done = '1';
+            if (REDUCE_MOTION) {
+              const t = parseInt(counter.getAttribute('data-count').replace(/,/g, ''), 10);
+              if (isFinite(t)) counter.textContent = t.toLocaleString();
+            } else {
+              animateCount(counter);
+            }
           }
           io.unobserve(e.target);
         }
@@ -485,37 +520,36 @@
     requestAnimationFrame(tick);
   }
 
-  // ---------- Story sections: reveal + parallax ----------
-  function initStories() {
-    const stories = document.querySelectorAll('.story');
-    if (!stories.length) return;
-
+  // ---------- Chapter reveals (IntersectionObserver fallback) ----------
+  // GSAP/ScrollTrigger upgrades these once loaded (initGsap). Both paths add
+  // `.is-visible`, which drives the CSS reveal — so there is never a flash.
+  function initChapterReveals() {
+    const chapters = document.querySelectorAll('.chapter');
+    if (!chapters.length) return;
     const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) e.target.classList.add('is-visible');
-      });
-    }, { threshold: 0.2 });
-    stories.forEach((s) => io.observe(s));
+      entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add('is-visible'); });
+    }, { threshold: 0.25 });
+    chapters.forEach((c) => io.observe(c));
+  }
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion) return;
-
+  // ---------- Lightweight parallax fallback (no GSAP) ----------
+  function initParallaxFallback() {
+    if (REDUCE_MOTION) return;
+    const hero = $('heroImg');
+    const bgs = Array.from(document.querySelectorAll('.chapter-bg'));
     let ticking = false;
     function onScroll() {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
-        stories.forEach((story) => {
-          const rect = story.getBoundingClientRect();
-          const vh = window.innerHeight;
-          if (rect.bottom < -200 || rect.top > vh + 200) return;
-          const centerOffset = (rect.top + rect.height / 2 - vh / 2) / (vh / 2);
-          const bg = story.querySelector('.story-bg');
-          if (bg) {
-            const shift = -centerOffset * 28;
-            const scale = 1.06 + Math.abs(centerOffset) * 0.03;
-            bg.style.transform = `translate3d(0, ${shift}px, 0) scale(${scale.toFixed(3)})`;
-          }
+        const vh = window.innerHeight;
+        const y = window.scrollY || 0;
+        if (hero) hero.style.transform = `translate3d(0, ${(y * 0.12).toFixed(1)}px, 0) scale(1.06)`;
+        bgs.forEach((bg) => {
+          const r = bg.getBoundingClientRect();
+          if (r.bottom < -200 || r.top > vh + 200) return;
+          const offset = (r.top + r.height / 2 - vh / 2) / vh; // -1..1
+          bg.style.transform = `translate3d(0, ${(-offset * 36).toFixed(1)}px, 0)`;
         });
         ticking = false;
       });
@@ -524,42 +558,72 @@
     onScroll();
   }
 
-  function initHero() {
-    const hero = document.querySelector('.hero');
-    if (!hero) return;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion) return;
-    let ticking = false;
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const y = window.scrollY || 0;
-        const map = hero.querySelector('.hero-map');
-        if (map) map.style.transform = `translate(-50%, calc(-50% + ${y * 0.18}px)) scale(${(1.05 + y * 0.00018).toFixed(4)})`;
-        const content = hero.querySelector('.hero-content');
-        if (content) content.style.transform = `translate3d(0, ${y * -0.25}px, 0)`;
-        const fade = Math.max(0, 1 - y / 600);
-        if (content) content.style.opacity = fade.toFixed(3);
-        ticking = false;
+  // ---------- GSAP / ScrollTrigger upgrade (progressive enhancement) ----------
+  // Only runs when GSAP loaded AND motion is allowed. Cleanup-safe: all triggers
+  // are killed if the landing view is torn down (it isn't, but kept tidy).
+  let gsapStarted = false;
+  function initGsap() {
+    if (gsapStarted) return;
+    if (REDUCE_MOTION) return;                 // honour reduced motion
+    if (typeof window.gsap === 'undefined' || typeof window.ScrollTrigger === 'undefined') return;
+    gsapStarted = true;
+
+    const gsap = window.gsap;
+    gsap.registerPlugin(window.ScrollTrigger);
+    document.documentElement.classList.add('gsap-ready');
+
+    // Hero: intro stagger of the type lockup + parallax on the photo as you scroll.
+    const heroBits = gsap.utils.toArray('[data-hero]');
+    if (heroBits.length) {
+      gsap.set(heroBits, { y: 26, autoAlpha: 0 });
+      gsap.to(heroBits, { y: 0, autoAlpha: 1, duration: 1.1, ease: 'power3.out', stagger: 0.12, delay: 0.15 });
+    }
+    const heroImg = $('heroImg');
+    if (heroImg) {
+      gsap.to(heroImg, {
+        yPercent: 14, ease: 'none',
+        scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
       });
     }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+
+    // Chapters: drive the existing CSS reveal via .is-visible (toggleClass) so the
+    // markup stays the single source of truth, plus a gentle parallax on each photo.
+    gsap.utils.toArray('.chapter').forEach((ch) => {
+      window.ScrollTrigger.create({
+        trigger: ch,
+        start: 'top 78%',
+        onEnter: () => ch.classList.add('is-visible'),
+      });
+      const bg = ch.querySelector('.chapter-bg');
+      if (bg) {
+        gsap.fromTo(bg, { yPercent: -6 }, {
+          yPercent: 6, ease: 'none',
+          scrollTrigger: { trigger: ch, start: 'top bottom', end: 'bottom top', scrub: true },
+        });
+      }
+    });
+
+    window.ScrollTrigger.refresh();
   }
 
   // ---------- Init ----------
   function init() {
-    if (typeof L === 'undefined') {
-      console.warn('Leaflet not loaded yet');
-    }
     initTopnav();
+    initAccents();
     initStats();
-    initStories();
-    initHero();
+    initChapterReveals();
     wireCrumb();
     handleRoute();
     window.addEventListener('hashchange', handleRoute);
+
+    // Motion layer: prefer GSAP/ScrollTrigger when present and motion is allowed;
+    // otherwise the rAF parallax fallback handles the photo movement. Chapter
+    // reveals already work via IntersectionObserver regardless.
+    if (!REDUCE_MOTION && typeof window.gsap !== 'undefined' && typeof window.ScrollTrigger !== 'undefined') {
+      initGsap();
+    } else {
+      initParallaxFallback();
+    }
     // v32: smart-place labels needs re-run on resize / orientation change.
     let resizeT;
     window.addEventListener('resize', () => {

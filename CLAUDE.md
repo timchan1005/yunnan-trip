@@ -7,8 +7,11 @@ Onboarding notes for the next developer/agent. Read this first.
 A **single-purpose static website** for a private 13-day Yunnan, China trip
 (2026/10/10–22: 昆明 → 大理 → 麗江 → 瀘沽湖 → 香格里拉 → 飛來寺). It has two faces:
 
-- `index.html` — cinematic landing page (sticky-scroll story) **+** a hand-drawn
+- `index.html` — editorial travel-journal landing (full-bleed photo hero →
+  overview ledger → five alternating chapter spreads → outro) **+** a hand-drawn
   ink-wash map at route `#/map` (overview → city region → spot drill-down).
+  Redesigned in **v48** ("旅程手記"): per-chapter accent colours, GSAP-driven
+  motion with a no-GSAP fallback. See §12.
 - `map.html` — the full **interactive map app**: Leaflet base layers
   (OSM / satellite / terrain), per-day routes, Google Places search, a
   multi-currency budget tracker, and optional cloud sync.
@@ -30,6 +33,11 @@ UI text is **Traditional Chinese / Cantonese (`zh-Hant`)**. Keep it that way.
 ## 3. Tech stack
 
 - Pure **HTML + CSS + vanilla JS**. No framework, no bundler, no `package.json`.
+- **GSAP 3.12.5 + ScrollTrigger** (cdnjs CDN, in `index.html` only) drive the
+  landing motion. Loaded as **progressive enhancement**: if GSAP fails to load,
+  or `prefers-reduced-motion` is set, `landing.js` falls back to
+  IntersectionObserver reveals + a small rAF parallax — the page is fully usable
+  either way. `map.html` does not use GSAP.
 - **Leaflet 1.9.4** + `markercluster` 1.5.3 (via unpkg CDN, in `map.html`).
 - **Google Maps JS / Places / Geocoding** for search (key in `config.js`),
   with **Nominatim** (OpenStreetMap) as fallback.
@@ -79,9 +87,9 @@ and no console errors**, click through landing → `#/map` drill-down, and on
 |---|---|
 | `index.html` | Landing page + hand-drawn map shell (`#/`, `#/map`) |
 | `map.html` | Interactive Leaflet map app shell |
-| `landing.css` | Styles for `index.html` |
+| `landing.css` | Styles for `index.html` (v48 editorial system + preserved ink-map drill-down styles below the divider comment) |
 | `style.css` | Styles for `map.html` |
-| `landing.js` | Landing scroll/story logic + hash router + ink-map drill-down |
+| `landing.js` | Landing reveal/parallax logic (GSAP + IO fallback) + per-chapter accent tinting + hash router + ink-map drill-down |
 | `app.js` | The interactive map app (largest file; map, budget, search, sync, print) |
 | `data.js` | `window.DEFAULT_ITINERARY` — **the trip content** (13 days, 38 spots) |
 | `mapdata.js` | `window.MAP_DATA` — overview/region/spot geometry for the hand-drawn map |
@@ -120,8 +128,8 @@ and no console errors**, click through landing → `#/map` drill-down, and on
 ## 9. Cache-busting / versioning  ← IMPORTANT, this caused the last bug
 
 - Local CSS/JS are loaded with a **`?v=<N>` query string** (e.g. `style.css?v=47`).
-  The number is a **site-wide release counter**, currently **`v47`** (matches the
-  latest commit `v47: …`). On each release the convention is to bump **every**
+  The number is a **site-wide release counter**, currently **`v48`** (the editorial
+  landing redesign). On each release the convention is to bump **every**
   `?v=` across **both** `index.html` and `map.html` to the same number — even for
   files whose contents didn't change — so returning visitors never get a
   half-old / half-new mix from cache.
@@ -149,8 +157,8 @@ and no console errors**, click through landing → `#/map` drill-down, and on
   itinerary/budget still work.
 - **No build, no tests, no CI.** Validation is manual (§5). `node` is only used
   for the syntax/JSON checks, not at runtime.
-- The landing page advertises "50+景點"; `data.js` actually has 38 spots — copy
-  rounding, not a data bug.
+- The old landing advertised "50+景點"; the v48 ledger now states the real **38**
+  (`data.js` has 38 spots). Keep the ledger number in sync if you add/remove spots.
 
 ## 11. Handoff checklist
 
@@ -163,3 +171,32 @@ and no console errors**, click through landing → `#/map` drill-down, and on
       same new number (§9).
 - [ ] Verify `config.js` key restrictions still cover the live Vercel domain.
 - [ ] Push to `main` → confirm Vercel redeploy and re-check the live URL.
+
+## 12. v48 landing redesign ("旅程手記")
+
+The landing was rebuilt as an editorial travel journal. Structure in `index.html`:
+`.hero` (full-bleed photo + type lockup) → `.ledger` (overview + animated stats)
+→ `.chapters` (five `<article class="chapter">` spreads) → `.outro` (two explore
+cards). The `#/map` ink-drill-down view is unchanged.
+
+- **Chapters.** Each `.chapter` alternates image/text sides via `.chapter-flip`
+  (even chapters). Per-region accent colour is set inline as
+  `data-accent="#…"` on the article; `landing.js` copies it to that chapter's
+  `--accent` custom property (drives the spine rule, bullets, meta). To add/edit
+  a chapter, copy an `<article>` block, set `data-accent`, `data-chapter`, the
+  `Day`/place meta, title, body, and list. Keep image refs pointing at real
+  `img/yn_city_*.webp` art.
+- **Stats** are hand-set in the `.ledger` markup (`data-count`) — they are *not*
+  read from `data.js`. The spot count is **38** (matches `data.js`); update by
+  hand if the itinerary changes.
+- **Motion = progressive enhancement.** GSAP/ScrollTrigger (CDN) animate the hero
+  intro + photo parallax and toggle `.chapter.is-visible`. If GSAP is absent or
+  `prefers-reduced-motion` is set, `landing.js` uses IntersectionObserver reveals
+  + a rAF parallax fallback. Reveal CSS keys only off `.is-visible`, so there is
+  no flash-of-hidden-content in any path. Don't make content depend on GSAP.
+- **Nav** is transparent-over-hero and turns to a frosted paper bar on scroll
+  (`.is-scrolled`); the brand mark tints to the chapter currently in view.
+- The big ink-map drill-down CSS lives **below the divider comment** in
+  `landing.css` and is intentionally preserved — `landing.js` renders into those
+  exact class hooks. Don't rename `.map-canvas-ink`, `.ink-pin*`, `.map-level`,
+  `.spt-*`, etc.

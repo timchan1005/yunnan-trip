@@ -3,236 +3,239 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1d3557">
+<meta name="theme-color" content="#13110d">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<title>雲南之旅 · 2026 秋</title>
+<title>雲南十三日 · 2026 秋 · 由昆明到梅里雪山</title>
+<meta name="description" content="香港出發，2026 年 10 月 10–22 日的雲南自駕手記：昆明、大理、麗江、瀘沽湖、香格里拉，一路向北、一路向高，行到梅里雪山的日照金山。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="雲南十三日 · 2026 秋">
+<meta property="og:description" content="由滇池畔的紅瓦，一路向北行到梅里雪山的金光。十三日、五城、三十八個景點的旅程手記。">
+<meta property="og:image" content="img/v28_spot_day11-s1_meili.webp">
+<meta property="og:locale" content="zh_HK">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="img/yn_city_1_kunming.webp">
 <link rel="preload" as="image" href="img/v28_spot_day11-s1_meili.webp">
-<link rel="preload" as="image" href="img/v30b_yunnan_overview.webp">
-<link rel="stylesheet" href="landing.css?v=47">
+<link rel="stylesheet" href="landing.css?v=48">
 </head>
-<body>
+<body class="on-landing">
 
-<!-- ====== Top navigation (always visible) ====== -->
+<!-- ====== Top navigation ====== -->
 <nav class="topnav" id="topnav">
   <a class="brand" href="#/">
     <span class="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M2 19 L8 9 L13 15 L18 5 L22 19 Z" fill="currentColor"/></svg>
+      <svg viewBox="0 0 32 32" width="22" height="22" fill="none">
+        <circle cx="23" cy="9" r="2.6" fill="currentColor" opacity="0.9"/>
+        <path d="M3 24 L10 13 L15 19 L21 11 L29 24 Z" fill="currentColor"/>
+      </svg>
     </span>
     <span class="brand-text">
-      <span class="brand-title">雲南</span>
-      <span class="brand-sub">2026 · 10/10 – 22</span>
+      <span class="brand-title">雲南十三日</span>
+      <span class="brand-sub">2026 · 10.10 – 10.22</span>
     </span>
   </a>
   <div class="navlinks">
     <a href="#/" data-route="/">序章</a>
     <a href="#/map" data-route="/map">手繪地圖</a>
-    <a href="map.html">互動地圖</a>
+    <a class="navlinks-go" href="map.html">互動地圖<i aria-hidden="true">›</i></a>
   </div>
 </nav>
 
-<!-- ====== View: Landing (sticky scroll) ====== -->
+<!-- ====== View: Landing ====== -->
 <main class="view view-landing" id="view-landing">
 
-  <!-- Hero -->
-  <section class="hero">
+  <!-- Hero — full-bleed first scene -->
+  <section class="hero" id="hero">
     <div class="hero-bg">
-      <img src="img/v28_spot_day11-s1_meili.webp" alt="" class="hero-map">
-      <div class="hero-vignette"></div>
+      <img src="img/yn_city_1_kunming.webp" alt="" class="hero-img" id="heroImg">
+      <div class="hero-scrim"></div>
     </div>
-    <div class="hero-content">
-      <div class="hero-eyebrow">2026 · 秋 · 中國雲南</div>
-      <h1 class="hero-title">
-        <span class="hero-title-line">雲南</span>
-        <span class="hero-title-line hero-title-italic">十三日</span>
+    <div class="hero-grid">
+      <p class="hero-kicker" data-hero="1">
+        <span class="hero-kicker-rule"></span>
+        中國 · 雲南 · 二〇二六年秋
+      </p>
+      <h1 class="hero-title" data-hero="2">
+        <span class="hero-title-zh">雲南</span>
+        <span class="hero-title-num">十三日</span>
       </h1>
-      <p class="hero-sub">由滇池畔嘅紅瓦 · 行到梅里雪山嘅金光</p>
-      <div class="hero-route">
-        <span>昆明</span><i>›</i><span>大理</span><i>›</i><span>麗江</span><i>›</i><span>瀘沽湖</span><i>›</i><span>香格里拉</span>
+      <p class="hero-lede" data-hero="3">由滇池畔嘅紅瓦，一路向北、一路向高，行到梅里雪山嘅金光。</p>
+      <ol class="hero-route" data-hero="4" aria-label="行程城市">
+        <li>昆明</li>
+        <li>大理</li>
+        <li>麗江</li>
+        <li>瀘沽湖</li>
+        <li>香格里拉</li>
+      </ol>
+    </div>
+    <div class="hero-foot" data-hero="5">
+      <span class="hero-foot-item">13 日 12 晚</span>
+      <span class="hero-foot-item">全程包車</span>
+      <span class="hero-foot-item">海拔 1,890 → 4,292 米</span>
+    </div>
+    <div class="hero-scroll" aria-hidden="true">
+      <span>序章開始</span>
+      <svg width="12" height="20" viewBox="0 0 12 20"><path d="M6 1 V18 M2 13 L6 18 L10 13" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </section>
+
+  <!-- Overview ledger -->
+  <section class="ledger" id="ledger">
+    <div class="ledger-inner">
+      <div class="ledger-intro">
+        <p class="sec-label">行程一覽</p>
+        <h2 class="ledger-head">五座城，<br>一條向北嘅線。</h2>
+        <p class="ledger-note">由昆明出發坐火車去大理，沿洱海北上麗江，繞去瀘沽湖睇日出，再翻過白馬雪山入香格里拉，最後喺飛來寺等梅里嘅日照金山。</p>
       </div>
-    </div>
-    <div class="hero-scroll-hint">
-      <span>向下滑動</span>
-      <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 5 L7 10 L12 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      <dl class="ledger-stats">
+        <div class="ledger-stat" data-stat>
+          <dt>行程日數</dt>
+          <dd><span data-count="13">13</span><i>日</i></dd>
+        </div>
+        <div class="ledger-stat" data-stat>
+          <dt>途經城市</dt>
+          <dd><span data-count="5">5</span><i>城</i></dd>
+        </div>
+        <div class="ledger-stat" data-stat>
+          <dt>標記景點</dt>
+          <dd><span data-count="38">38</span><i>處</i></dd>
+        </div>
+        <div class="ledger-stat" data-stat>
+          <dt>總行車里程</dt>
+          <dd><span data-count="1700">1,700</span><i>公里</i></dd>
+        </div>
+      </dl>
     </div>
   </section>
 
-  <!-- Stat strip -->
-  <section class="stats">
-    <div class="stats-inner">
-      <div class="stat" data-stat>
-        <div class="stat-num"><span data-count="13">13</span></div>
-        <div class="stat-label">日</div>
+  <!-- Chapters -->
+  <div class="chapters" id="chapters">
+
+    <article class="chapter" id="story-kunming" data-accent="#c75b3a" data-chapter="01">
+      <div class="chapter-media">
+        <div class="chapter-bg" style="background-image:url('img/yn_city_1_kunming.webp')"></div>
+        <div class="chapter-bg-scrim"></div>
+        <span class="chapter-index" aria-hidden="true">01</span>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat" data-stat>
-        <div class="stat-num"><span data-count="5">5</span></div>
-        <div class="stat-label">城</div>
+      <div class="chapter-text">
+        <p class="chapter-meta"><span class="chapter-days">Day 1–2</span><span class="chapter-place">昆明</span></p>
+        <h2 class="chapter-title">紅瓦上嘅夕陽</h2>
+        <p class="chapter-body">由香港落機，專車接你入索菲特。雙橋夜市食碗豆花米線、街口買杯水果茶。第二朝出發去石林睇喀斯特石柱，黃昏喺撈魚河濕地等滇池嘅日落，晚上返昆明老街，喺青磚老巷之間揾一間雲南菜館慢慢食。</p>
+        <ul class="chapter-list">
+          <li>石林風景區 · 世界自然遺產</li>
+          <li>撈魚河濕地 · 滇池東岸日落</li>
+          <li>昆明老街 · 雲南小食</li>
+        </ul>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat" data-stat>
-        <div class="stat-num"><span data-count="50">50</span><span class="stat-plus">+</span></div>
-        <div class="stat-label">景點</div>
+    </article>
+
+    <article class="chapter chapter-flip" id="story-dali" data-accent="#2d8a87" data-chapter="02">
+      <div class="chapter-media">
+        <div class="chapter-bg" style="background-image:url('img/yn_city_2_dali.webp')"></div>
+        <div class="chapter-bg-scrim"></div>
+        <span class="chapter-index" aria-hidden="true">02</span>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat" data-stat>
-        <div class="stat-num"><span data-count="1700">1,700</span></div>
-        <div class="stat-label">公里 · 一路向北</div>
+      <div class="chapter-text">
+        <p class="chapter-meta"><span class="chapter-days">Day 3–4</span><span class="chapter-place">大理</span></p>
+        <h2 class="chapter-title">洱海一片祖母綠</h2>
+        <p class="chapter-body">火車去大理，沿洱海邊行：第一站理想邦睇白屋藍頂，雙廊古鎮喺湖邊發呆，小普陀坐喺島上。翌日喜洲粑粑食一個，周城白族扎染染條布巾，喺龍龕碼頭打卡洱海 S 彎，崇聖寺三塔尖頂指住天，夜晚返大理古城慢遊。</p>
+        <ul class="chapter-list">
+          <li>洱海 S 彎 · 龍龕碼頭</li>
+          <li>喜洲古鎮 · 白族建築</li>
+          <li>崇聖寺三塔 · 大理地標</li>
+        </ul>
       </div>
-    </div>
-  </section>
+    </article>
 
-  <!-- Transition strip: stats (paper) → kunming (warm red) -->
+    <article class="chapter" id="story-lijiang" data-accent="#3f7d54" data-chapter="03">
+      <div class="chapter-media">
+        <div class="chapter-bg" style="background-image:url('img/yn_city_3_lijiang.webp')"></div>
+        <div class="chapter-bg-scrim"></div>
+        <span class="chapter-index" aria-hidden="true">03</span>
+      </div>
+      <div class="chapter-text">
+        <p class="chapter-meta"><span class="chapter-days">Day 5–6</span><span class="chapter-place">麗江</span></p>
+        <h2 class="chapter-title">雪山下嘅古城</h2>
+        <p class="chapter-body">蒼山感通索道半山有間寂照庵，鮮花滿園供觀音。玉龍雪山主峰五千五百米，雲杉坪望雪線，藍月谷流出乳藍色嘅水。傍晚去白沙古鎮睇東巴壁畫，夜晚返麗江古城，柳樹底坐住飲杯酒。</p>
+        <ul class="chapter-list">
+          <li>玉龍雪山 · 雲杉坪索道</li>
+          <li>藍月谷 · 玉液湖</li>
+          <li>麗江古城 · 大研古鎮</li>
+        </ul>
+      </div>
+    </article>
 
-  <!-- City story sections -->
-  <section class="story" id="story-kunming" data-color="#5c2118">
-    <div class="story-bg" style="background-image:url('img/yn_city_1_kunming.webp')"></div>
-    <div class="story-bg-tint"></div>
-    <div class="story-content">
-      <div class="story-num">01</div>
-      <div class="story-tag">Day 1–2 · 昆明</div>
-      <h2 class="story-title">紅瓦上嘅夕陽</h2>
-      <p class="story-body">
-        由香港落機，專車接你入索菲特。雙橋夜市食碗豆花米線、街口買杯水果茶。
-        第二朝出發，去石林睇喀斯特石柱，黃昏喺撈魚河濕地等滇池嘅日落，
-        晚上返昆明老街，老巷青磚之間揾一間雲南菜館慢慢食。
-      </p>
-      <ul class="story-list">
-        <li><span class="dot"></span>石林風景區 · 世界自然遺產</li>
-        <li><span class="dot"></span>撈魚河濕地 · 滇池東岸 sunset</li>
-        <li><span class="dot"></span>昆明老街 · 雲南小食</li>
-      </ul>
-    </div>
-  </section>
+    <article class="chapter chapter-flip" id="story-lugu" data-accent="#2f6f9e" data-chapter="04">
+      <div class="chapter-media">
+        <div class="chapter-bg" style="background-image:url('img/yn_city_4_lugu.webp')"></div>
+        <div class="chapter-bg-scrim"></div>
+        <span class="chapter-index" aria-hidden="true">04</span>
+      </div>
+      <div class="chapter-text">
+        <p class="chapter-meta"><span class="chapter-days">Day 7–8</span><span class="chapter-place">瀘沽湖</span></p>
+        <h2 class="chapter-title">摩梭嘅水墨晨霧</h2>
+        <p class="chapter-body">瀘沽湖觀景台一覽湖光山色，夜晚摩梭篝火晚會，火堆邊跳鍋莊。翌晨四點起身，豬槽船載你去湖中心，等個太陽由山背升起；草海走婚橋，木橋穿過蘆葦，落午返麗江。</p>
+        <ul class="chapter-list">
+          <li>瀘沽湖觀景台 · 湖景全景</li>
+          <li>豬槽船晨霧 · 等日出</li>
+          <li>草海走婚橋 · 摩梭文化</li>
+        </ul>
+      </div>
+    </article>
 
-  <!-- Transition strip: kunming (deep red) → dali (jade) -->
+    <article class="chapter chapter-finale" id="story-shangrila" data-accent="#1d3557" data-chapter="05">
+      <div class="chapter-media">
+        <div class="chapter-bg" style="background-image:url('img/yn_city_5_shangrila.webp')"></div>
+        <div class="chapter-bg-scrim"></div>
+        <span class="chapter-index" aria-hidden="true">05</span>
+      </div>
+      <div class="chapter-text">
+        <p class="chapter-meta"><span class="chapter-days">Day 9–12</span><span class="chapter-place">香格里拉</span></p>
+        <h2 class="chapter-title">日照金山</h2>
+        <p class="chapter-body">虎跳峽聽金沙江拍峽壁，獨克宗古城轉經輪。松贊林寺金頂下藏式佛堂，大經幡寺前掛滿祈福布。白馬雪山觀景台越過四千二百米山口，霧濃頂等翌朝日照金山。飛來寺，梅里雪山嘅十三峰染上金光——呢一刻先明白點解叫香格里拉。最後嘅普達措國家公園、納帕海，結束呢趟路。</p>
+        <ul class="chapter-list">
+          <li>飛來寺 · 梅里日照金山</li>
+          <li>松贊林寺 · 小布達拉宮</li>
+          <li>普達措 · 高原濕地</li>
+          <li>納帕海 · 草原</li>
+        </ul>
+      </div>
+    </article>
 
-  <section class="story" id="story-dali" data-color="#1f4a48">
-    <div class="story-bg" style="background-image:url('img/yn_city_2_dali.webp')"></div>
-    <div class="story-bg-tint"></div>
-    <div class="story-content story-content-right">
-      <div class="story-num">02</div>
-      <div class="story-tag">Day 3–4 · 大理</div>
-      <h2 class="story-title">洱海一片祖母綠</h2>
-      <p class="story-body">
-        火車去大理，沿洱海邊行，第一站理想邦睇白屋藍頂；雙廊古鎮喺湖邊發呆，
-        小普陀坐喺島上。翌日喜洲粑粑食一個，周城白族扎染染條布巾，
-        S 彎打卡，崇聖寺三塔尖頂指住天，夜晚返大理古城慢遊。
-      </p>
-      <ul class="story-list">
-        <li><span class="dot"></span>洱海 S 彎 · 龍龕碼頭</li>
-        <li><span class="dot"></span>喜洲古鎮 · 白族建築</li>
-        <li><span class="dot"></span>崇聖寺三塔 · 大理地標</li>
-      </ul>
-    </div>
-  </section>
+  </div>
 
-  <!-- Transition strip: dali (jade) → lijiang (pine green) -->
-
-  <section class="story" id="story-lijiang" data-color="#0e3b3a">
-    <div class="story-bg" style="background-image:url('img/yn_city_3_lijiang.webp')"></div>
-    <div class="story-bg-tint"></div>
-    <div class="story-content">
-      <div class="story-num">03</div>
-      <div class="story-tag">Day 5–6 · 麗江</div>
-      <h2 class="story-title">雪山下嘅古城</h2>
-      <p class="story-body">
-        蒼山感通索道，半山有間寂照庵，鮮花滿園供觀音。
-        玉龍雪山主峰 5,596m，雲杉坪望雪線，藍月谷流出乳藍色嘅水。
-        傍晚去白沙古鎮睇東巴壁畫，夜晚返麗江古城，柳樹底坐住飲杯酒。
-      </p>
-      <ul class="story-list">
-        <li><span class="dot"></span>玉龍雪山 · 雲杉坪索道</li>
-        <li><span class="dot"></span>藍月谷 · 玉液湖</li>
-        <li><span class="dot"></span>麗江古城 · 大研古鎮</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- Transition strip: lijiang (pine) → lugu (deep blue) -->
-
-  <section class="story" id="story-lugu" data-color="#13345a">
-    <div class="story-bg" style="background-image:url('img/yn_city_4_lugu.webp')"></div>
-    <div class="story-bg-tint"></div>
-    <div class="story-content story-content-right">
-      <div class="story-num">04</div>
-      <div class="story-tag">Day 7–8 · 瀘沽湖</div>
-      <h2 class="story-title">摩梭嘅水墨晨霧</h2>
-      <p class="story-body">
-        瀘沽湖觀景台一覽湖光山色，夜晚摩梭篝火晚會，火堆邊跳鍋莊。
-        翌晨四點起身，豬槽船載你去湖中心，等個太陽由山背升起；
-        草海走婚橋，木橋穿過蘆葦，落午返麗江。
-      </p>
-      <ul class="story-list">
-        <li><span class="dot"></span>瀘沽湖觀景台</li>
-        <li><span class="dot"></span>豬槽船晨霧 · 日出</li>
-        <li><span class="dot"></span>草海走婚橋 · 摩梭文化</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- Transition strip: lugu (deep blue) → shangrila (indigo ink) -->
-
-  <section class="story" id="story-shangrila" data-color="#0c1f3f">
-    <div class="story-bg" style="background-image:url('img/yn_city_5_shangrila.webp')"></div>
-    <div class="story-bg-tint"></div>
-    <div class="story-content">
-      <div class="story-num">05</div>
-      <div class="story-tag">Day 9–12 · 香格里拉</div>
-      <h2 class="story-title">日照金山</h2>
-      <p class="story-body">
-        虎跳峽聽金沙江拍峽壁；獨克宗古城轉經輪。
-        松贊林寺金頂下藏式佛堂，大經幡寺前掛滿祈福布。
-        白馬雪山觀景台越過 4,200m 山口，霧濃頂等翌朝日照金山。
-        飛來寺，梅里雪山嘅 13 峰染上金光，呢一刻先明白點解叫香格里拉。
-        最後嘅普達措國家公園、納帕海，結束呢趟路。
-      </p>
-      <ul class="story-list">
-        <li><span class="dot"></span>飛來寺 · 梅里日照金山</li>
-        <li><span class="dot"></span>松贊林寺 · 小布達拉宮</li>
-        <li><span class="dot"></span>普達措 · 高原濕地</li>
-        <li><span class="dot"></span>納帕海 · 草原</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- Transition strip: shangrila (indigo) → outro (paper) -->
-
-  <!-- Route preview / CTA -->
-  <section class="outro">
+  <!-- Outro / two ways to explore -->
+  <section class="outro" id="outro">
     <div class="outro-inner">
-      <p class="outro-eyebrow">準備好喇？</p>
-      <h2 class="outro-title">用兩種方式 <em>睇</em> 呢趟旅程</h2>
+      <p class="sec-label sec-label-center">準備出發</p>
+      <h2 class="outro-title">用兩種方式行呢趟路</h2>
       <div class="outro-grid">
-        <a class="outro-card outro-card-illust" href="#/map">
-          <div class="outro-card-bg" style="background-image:url('img/v28_spot_day6-s1_yulong.webp')"></div>
-          <div class="outro-card-overlay"></div>
-          <div class="outro-card-content">
-            <div class="outro-card-tag">手繪 · 寫意</div>
+        <a class="explore-card" href="#/map">
+          <div class="explore-card-bg" style="background-image:url('img/v30b_yunnan_overview.webp')"></div>
+          <div class="explore-card-scrim"></div>
+          <div class="explore-card-body">
+            <p class="explore-card-kind">手繪 · 寫意</p>
             <h3>水彩雲南</h3>
-            <p>真實地圖 + 水墨濾鏡，撳一下景點睇水彩特寫。</p>
-            <span class="outro-card-cta">睇手繪地圖 →</span>
+            <p class="explore-card-desc">人手水墨雲南地圖，由總覽行入城市區，再撳開景點睇水彩特寫。</p>
+            <span class="explore-card-go">睇手繪地圖<i aria-hidden="true">›</i></span>
           </div>
         </a>
-        <a class="outro-card outro-card-tech" href="map.html">
-          <div class="outro-card-bg outro-card-bg-grid"></div>
-          <div class="outro-card-overlay"></div>
-          <div class="outro-card-content">
-            <div class="outro-card-tag">互動 · 實用</div>
+        <a class="explore-card" href="map.html">
+          <div class="explore-card-bg" style="background-image:url('img/v28_spot_day6-s1_yulong.webp')"></div>
+          <div class="explore-card-scrim"></div>
+          <div class="explore-card-body">
+            <p class="explore-card-kind">互動 · 實用</p>
             <h3>真實坐標</h3>
-            <p>OSM 衛星地形三 mode，每日路線、預算管理、雲端同步。</p>
-            <span class="outro-card-cta">開互動地圖 →</span>
+            <p class="explore-card-desc">OSM、衛星、地形三種底圖，每日路線、預算管理同雲端同步。</p>
+            <span class="explore-card-go">開互動地圖<i aria-hidden="true">›</i></span>
           </div>
         </a>
       </div>
       <footer class="page-foot">
-        <span>10/10 出發</span>
-        <span>·</span>
-        <span>13 日 12 晚</span>
-        <span>·</span>
+        <span>10.10 出發</span><span class="page-foot-dot"></span>
+        <span>13 日 12 晚</span><span class="page-foot-dot"></span>
         <span>全程包車</span>
       </footer>
     </div>
@@ -242,7 +245,6 @@
 
 <!-- ====== View: Hand-drawn map (3-level drill-down) ====== -->
 <main class="view view-map" id="view-map" hidden>
-  <!-- Breadcrumb / back -->
   <div class="map-crumb" id="mapCrumb">
     <button class="crumb-back" id="crumbBack" aria-label="返回">
       <svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3 L5 8 L10 13" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -252,10 +254,8 @@
     <div class="crumb-meta" id="crumbMeta"></div>
   </div>
 
-  <!-- Map stage: holds 3 levels stacked, only one active -->
   <div class="map-stage-wrap" id="mapStageWrap">
 
-    <!-- Level 0: Yunnan overview — Leaflet real map + ink-wash filter -->
     <div class="map-level map-level-overview" data-level="overview">
       <div class="map-canvas map-canvas-ink">
         <div id="overviewStage" class="inkmap-stage" aria-label="雲南總覽水墨地圖"></div>
@@ -267,7 +267,6 @@
       </div>
     </div>
 
-    <!-- Level 1: Region (city) — Leaflet real map fit to region bounds -->
     <div class="map-level map-level-region" data-level="region" hidden>
       <div class="map-canvas map-canvas-ink">
         <div id="regionStage" class="inkmap-stage" aria-label="城市區水墨地圖"></div>
@@ -279,7 +278,6 @@
       </div>
     </div>
 
-    <!-- Level 2: Spot detail — watercolor close-up + pointer overlay -->
     <div class="map-level map-level-spot" data-level="spot" hidden>
       <div class="map-canvas map-canvas-spot" id="spotCanvas">
         <img src="" alt="" class="map-canvas-img" id="spotImg">
@@ -297,8 +295,10 @@
   </div>
 </main>
 
-<script src="data.js?v=47"></script>
-<script src="mapdata.js?v=47"></script>
-<script src="landing.js?v=47"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="data.js?v=48"></script>
+<script src="mapdata.js?v=48"></script>
+<script src="landing.js?v=48" defer></script>
 </body>
 </html>
