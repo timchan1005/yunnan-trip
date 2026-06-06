@@ -200,3 +200,30 @@ cards). The `#/map` ink-drill-down view is unchanged.
   `landing.css` and is intentionally preserved — `landing.js` renders into those
   exact class hooks. Don't rename `.map-canvas-ink`, `.ink-pin*`, `.map-level`,
   `.spt-*`, etc.
+
+## 13. Sync state is in-memory only (no Web Storage)
+
+The static-host **preview sandbox forbids `localStorage` / `sessionStorage` /
+`indexedDB`** (also Pointer Lock + Fullscreen). `sync.js` therefore keeps all of
+its bookkeeping in **module-scoped in-memory variables** (`deviceId`,
+`deviceName`, `syncMeta`) that live only for the lifetime of the page. Do **not**
+reintroduce any Web Storage API in shipped JS — it will get the deploy blocked.
+
+What this changes vs. the old localStorage-backed version:
+
+- **Device ID** is regenerated on every page load (no longer stable across
+  reloads). It is only used to detect "did *another* device touch the cloud since
+  my last sync"; a fresh ID per session just means same-device reloads are treated
+  like a different device — the conflict prompt is `confirm()`-guarded, so nothing
+  is silently clobbered.
+- **Device name** auto-derives from the user agent each load; a custom name set via
+  `setDeviceName()` is not persisted across reloads.
+- **`last_synced_at`** resets to `0` each load, so the first `pullCloud()` after a
+  reload will see the cloud as "newer" and offer a download (again `confirm()`-
+  guarded — declining keeps local).
+
+**Cloud sync still works**: the JSONBin record is the source of truth, and
+push/pull operate on the live in-memory snapshot. Only cross-reload *memory* of
+prior sync state is lost — acceptable for this single-trip app. The interactive
+map, search, base-layer toggles, and budget UI are unaffected by this change
+(they read/write the in-memory `expenses`/`state` the app already holds).

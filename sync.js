@@ -21,44 +21,44 @@
 // =============================================================
 
 (function () {
-  const SYNC_META_KEY = 'yunnan-sync-meta-v1';
-  const DEVICE_ID_KEY = 'yunnan-device-id-v1';
-  const DEVICE_NAME_KEY = 'yunnan-device-name-v1';
   const PUSH_DEBOUNCE_MS = 3000;
 
+  // In-memory session state. The preview/static-host sandbox forbids
+  // localStorage/sessionStorage/indexedDB, so device identity and sync
+  // bookkeeping live for the lifetime of the page only (see CLAUDE.md §13).
+  // Cloud sync itself still works: the JSONBin record is the source of truth.
+  let deviceId = null;
+  let deviceName = null;
+  let syncMeta = {};
+
   function getDeviceId() {
-    let id = localStorage.getItem(DEVICE_ID_KEY);
-    if (!id) {
-      id = 'd_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-      try { localStorage.setItem(DEVICE_ID_KEY, id); } catch (_) {}
+    if (!deviceId) {
+      deviceId = 'd_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
     }
-    return id;
+    return deviceId;
   }
 
   function getDeviceName() {
-    let name = localStorage.getItem(DEVICE_NAME_KEY);
-    if (name) return name;
+    if (deviceName) return deviceName;
     const ua = navigator.userAgent;
-    if (/iPhone/i.test(ua)) name = 'iPhone';
-    else if (/iPad/i.test(ua)) name = 'iPad';
-    else if (/Android/i.test(ua)) name = 'Android';
-    else if (/Mac/i.test(ua)) name = 'Mac';
-    else if (/Windows/i.test(ua)) name = 'Windows';
-    else name = 'Browser';
-    try { localStorage.setItem(DEVICE_NAME_KEY, name); } catch (_) {}
-    return name;
+    if (/iPhone/i.test(ua)) deviceName = 'iPhone';
+    else if (/iPad/i.test(ua)) deviceName = 'iPad';
+    else if (/Android/i.test(ua)) deviceName = 'Android';
+    else if (/Mac/i.test(ua)) deviceName = 'Mac';
+    else if (/Windows/i.test(ua)) deviceName = 'Windows';
+    else deviceName = 'Browser';
+    return deviceName;
   }
 
   function setDeviceName(name) {
-    try { localStorage.setItem(DEVICE_NAME_KEY, name); } catch (_) {}
+    deviceName = name;
   }
 
   function loadMeta() {
-    try { return JSON.parse(localStorage.getItem(SYNC_META_KEY) || '{}'); }
-    catch (_) { return {}; }
+    return syncMeta;
   }
   function saveMeta(m) {
-    try { localStorage.setItem(SYNC_META_KEY, JSON.stringify(m)); } catch (_) {}
+    syncMeta = m || {};
   }
 
   function isConfigured() {
